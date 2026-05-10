@@ -15,7 +15,7 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Colors } from '../constants';
 
 // Prevent the splash screen from auto-hiding
@@ -43,46 +43,48 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: Colors.background },
-        }}
-      >
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="new-chat"
-          options={{
-            presentation: 'modal',
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
           }}
-        />
-        <Stack.Screen
-          name="new-group"
-          options={{
-            presentation: 'modal',
-          }}
-        />
-        <Stack.Screen
-          name="call/[callId]"
-          options={{
-            presentation: 'fullScreenModal',
-          }}
-        />
-        <Stack.Screen
-          name="status/view/[userId]"
-          options={{
-            presentation: 'fullScreenModal',
-          }}
-        />
-        <Stack.Screen
-          name="profile/[userId]"
-          options={{
-            presentation: 'card',
-          }}
-        />
-      </Stack>
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="new-chat"
+            options={{
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="new-group"
+            options={{
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="call/[callId]"
+            options={{
+              presentation: 'fullScreenModal',
+            }}
+          />
+          <Stack.Screen
+            name="status/view/[userId]"
+            options={{
+              presentation: 'fullScreenModal',
+            }}
+          />
+          <Stack.Screen
+            name="profile/[userId]"
+            options={{
+              presentation: 'card',
+            }}
+          />
+        </Stack>
+      </View>
     </GestureHandlerRootView>
   );
 }
@@ -90,5 +92,6 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.background,
   },
 });
