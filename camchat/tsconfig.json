@@ -1,9 +1,6 @@
 {
   "extends": "expo/tsconfig.base.json",
   "compilerOptions": {
-<<<<<<< HEAD
-    "strict": true
-=======
     "strict": true,
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
@@ -20,7 +17,6 @@
       "@/types/*": ["types/*"],
       "@/utils/*": ["utils/*"]
     }
->>>>>>> 25d2972b37f7e718b2ca47cf409cfcbaf93d75b8
   },
   "include": [
     "**/*.ts",
