@@ -1,0 +1,91 @@
+{
+  "expo": {
+    "name": "CamChat",
+    "slug": "camchat",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "scheme": "camchat",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1034A6"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.camchat.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "CamChat needs camera access to take photos and videos for sharing.",
+        "NSMicrophoneUsageDescription": "CamChat needs microphone access for voice notes and calls.",
+        "NSContactsUsageDescription": "CamChat needs access to your contacts to help you connect with friends.",
+        "NSPhotoLibraryUsageDescription": "CamChat needs access to your photos to share images."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1034A6"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.camchat.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_CONTACTS",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "CamChat needs camera access to take photos and videos.",
+          "microphonePermission": "CamChat needs microphone access for voice notes and calls.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "CamChat needs access to your contacts to help you find friends."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#1034A6"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "CamChat needs access to your photos to share images.",
+          "cameraPermission": "CamChat needs camera access to take photos."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "CamChat needs microphone access for voice notes and calls."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    },
+    "primaryColor": "#1034A6"
+  }
+}
