@@ -43,12 +43,11 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <StatusBar style="light" backgroundColor={Colors.primaryDark} />
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: Colors.background },
-          animation: 'slide_from_right',
         }}
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -57,35 +56,30 @@ export default function RootLayout() {
           name="new-chat"
           options={{
             presentation: 'modal',
-            animation: 'slide_from_bottom',
           }}
         />
         <Stack.Screen
           name="new-group"
           options={{
             presentation: 'modal',
-            animation: 'slide_from_bottom',
           }}
         />
         <Stack.Screen
           name="call/[callId]"
           options={{
             presentation: 'fullScreenModal',
-            animation: 'fade',
           }}
         />
         <Stack.Screen
           name="status/view/[userId]"
           options={{
             presentation: 'fullScreenModal',
-            animation: 'fade',
           }}
         />
         <Stack.Screen
           name="profile/[userId]"
           options={{
             presentation: 'card',
-            animation: 'slide_from_right',
           }}
         />
       </Stack>

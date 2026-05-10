@@ -6,8 +6,10 @@
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import { Colors, Typography, Spacing, Radius } from '../../../constants';
 import { t } from '../../../lib/i18n';
+import QRCodeModal from '../../../components/QRCodeModal';
 
 interface SettingsItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -32,6 +34,12 @@ function SettingsItem({ icon, label, onPress, showChevron = true, color }: Setti
 }
 
 export default function SettingsScreen() {
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+
+  // Mock user data - replace with actual user data from store
+  const userId = 'user123';
+  const userName = 'User Name';
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -46,7 +54,7 @@ export default function SettingsScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Profile Section */}
-        <Pressable style={styles.profileSection}>
+        <Pressable style={styles.profileSection} onPress={() => setQrModalVisible(true)}>
           <View style={styles.avatar}>
             <Ionicons name="person" size={40} color={Colors.textSecondary} />
           </View>
@@ -90,6 +98,13 @@ export default function SettingsScreen() {
           <Text style={styles.versionSubtext}>Made with love in Cameroon</Text>
         </View>
       </ScrollView>
+
+      <QRCodeModal
+        visible={qrModalVisible}
+        userId={userId}
+        userName={userName}
+        onClose={() => setQrModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }

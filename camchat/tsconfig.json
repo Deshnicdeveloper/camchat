@@ -1,34 +1,7 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "expo/tsconfig.base.json",
   "compilerOptions": {
-    "strict": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@/components/*": [
-        "components/*"
-      ],
-      "@/constants/*": [
-        "constants/*"
-      ],
-      "@/hooks/*": [
-        "hooks/*"
-      ],
-      "@/lib/*": [
-        "lib/*"
-      ],
-      "@/store/*": [
-        "store/*"
-      ],
-      "@/types/*": [
-        "types/*"
-      ],
-      "@/utils/*": [
-        "utils/*"
-      ]
-    }
+    "strict": true
   },
   "include": [
     "**/*.ts",
