@@ -142,13 +142,13 @@ Use `@expo/vector-icons` (Ionicons + MaterialCommunityIcons). Never use emoji as
 | Navigation            | expo-router v3                                        |
 | Auth                  | firebase (phone auth)                                 |
 | Database              | firebase/firestore                                    |
-| Storage               | firebase/storage                                      |
+| Storage               | @supabase/supabase-js (Supabase Storage)              |
 | Push Notifications    | expo-notifications + firebase cloud messaging         |
 | Audio Record/Play     | expo-av                                               |
 | Image Picker          | expo-image-picker                                     |
 | Contacts              | expo-contacts                                         |
 | Camera                | expo-camera                                           |
-| Video Calling         | @daily-co/react-native-daily-js                       |
+| Video Calling         | react-native-agora (Agora.io)                         |
 | State Management      | zustand                                               |
 | Async Storage         | @react-native-async-storage/async-storage             |
 | Animations            | react-native-reanimated + react-native-gesture-handler|
@@ -202,7 +202,7 @@ messages/{messageId}
 ├── senderId: string
 ├── type: 'text' | 'image' | 'video' | 'audio' | 'document' | 'location'
 ├── text?: string
-├── mediaUrl?: string               // Firebase Storage URL
+├── mediaUrl?: string               // Supabase Storage URL
 ├── mediaThumbnail?: string         // for video
 ├── audioDuration?: number          // seconds, for voice notes
 ├── fileName?: string               // for documents
@@ -239,10 +239,53 @@ calls/{callId}
 ├── receiverId: string
 ├── type: 'voice' | 'video'
 ├── status: 'ringing' | 'ongoing' | 'ended' | 'missed' | 'declined'
-├── dailyRoomUrl?: string          // Daily.co room URL
+├── agoraChannelName?: string      // Agora.io channel name
+├── agoraToken?: string            // Agora.io token for authentication
 ├── startedAt?: Timestamp
 ├── endedAt?: Timestamp
 └── createdAt: Timestamp
+
+---
+
+## Supabase Storage Architecture
+
+### Buckets
+
+**`avatars`** — User profile pictures
+```
+avatars/
+└── {userId}.jpg
+```
+
+**`chat-media`** — Images, videos, and documents sent in chats
+```
+chat-media/
+└── {chatId}/
+    ├── {messageId}.jpg          // Images
+    ├── {messageId}.mp4          // Videos
+    ├── {messageId}_thumb.jpg    // Video thumbnails
+    └── {messageId}.pdf          // Documents
+```
+
+**`voice-notes`** — Audio messages
+```
+voice-notes/
+└── {chatId}/
+    └── {messageId}.m4a
+```
+
+**`statuses`** — Status/story media (auto-deleted after 24hrs)
+```
+statuses/
+└── {userId}/
+    └── {statusId}.jpg|mp4
+```
+
+### Storage Policies
+- All buckets require authentication
+- Users can only upload to paths containing their own `userId`
+- Users can read files from chats they are participants in
+- Status files are readable by contacts only
 
 ---
 
@@ -298,9 +341,10 @@ camchat/
 │       ├── OnboardingSlide.tsx
 │       └── PaginationDots.tsx
 ├── lib/
-│   ├── firebase.ts                  // Firebase init
+│   ├── firebase.ts                  // Firebase init (Auth + Firestore)
 │   ├── firestore.ts                 // Firestore helpers
-│   └── storage.ts                   // Firebase Storage helpers
+│   ├── supabase.ts                  // Supabase init (Storage)
+│   └── storage.ts                   // Supabase Storage helpers
 ├── store/
 │   ├── authStore.ts                 // Zustand: current user
 │   ├── chatStore.ts                 // Zustand: chats + messages
@@ -425,7 +469,8 @@ export interface Call {
   receiverId: string
   type: CallType
   status: CallStatus
-  dailyRoomUrl?: string
+  agoraChannelName?: string
+  agoraToken?: string
   startedAt?: Date
   endedAt?: Date
   createdAt: Date
@@ -445,7 +490,7 @@ export interface Call {
 **Steps:**
 1. Create new Expo project: `npx create-expo-app camchat --template blank-typescript`
 2. Install all packages listed in the Tech Stack table above
-3. Configure `expo-dev-client` (required for Daily.co and expo-contacts native modules)
+3. Configure `expo-dev-client` (required for Agora.io and expo-contacts native modules)
 4. Create `app.json` with:
    - App name: CamChat
    - Slug: camchat
@@ -461,7 +506,8 @@ export interface Call {
    - 4 tabs: Chats, Status, Calls, Settings
    - Active tab color: Egyptian Blue (#1034A6)
    - Tab icons: Ionicons — chatbubbles-outline, radio-outline, call-outline, settings-outline
-10. Initialize Firebase project (Firestore, Auth, Storage) and create `lib/firebase.ts` with config
+10. Initialize Firebase project (Firestore, Auth) and create `lib/firebase.ts` with config
+11. Initialize Supabase project (Storage) and create `lib/supabase.ts` with config
 
 **Deliverable:** App launches, shows bottom tabs, fonts load correctly, no TypeScript errors.
 
@@ -636,7 +682,7 @@ export interface Call {
 
 **Sending a Voice Note:**
 1. Stop recording → get audio file URI from `expo-av`
-2. Upload file to Firebase Storage at `voice-notes/{chatId}/{messageId}.m4a`
+2. Upload file to Supabase Storage bucket `voice-notes` at path `{chatId}/{messageId}.m4a`
 3. Create message document with `type: 'audio'`, `mediaUrl`, `audioDuration`
 
 **Voice Note Bubble:**
@@ -708,7 +754,7 @@ export interface Call {
 - Tap "My Status" → bottom sheet with options: Camera, Gallery (Photo/Video), Text
 - Text status: full-screen color picker (preset Cameroonian-palette backgrounds), large text input centered
 - Photo/video: tap or gallery-picked, optional caption input at bottom
-- "Post" button → upload to Firebase Storage → write to `statuses` collection with `expiresAt = now + 24hrs`
+- "Post" button → upload to Supabase Storage bucket `statuses` → write to `statuses` collection with `expiresAt = now + 24hrs`
 
 **Status Viewer (Full Screen):**
 - Launched from tapping a contact's status ring
@@ -723,7 +769,7 @@ export interface Call {
 
 **Expiry Logic:**
 - Client-side: filter out statuses where `expiresAt < now` before rendering
-- Cloud Function (or scheduled job): delete expired status documents and associated Storage files every hour
+- Cloud Function (or scheduled job): delete expired status documents from Firestore and associated files from Supabase Storage every hour
 
 **Deliverable:** Full status post, view, auto-expire, and reply cycle working.
 
@@ -731,13 +777,20 @@ export interface Call {
 
 ### PHASE 8 — Voice & Video Calls
 
-**Goal:** Real-time voice and video calling via Daily.co.
+**Goal:** Real-time voice and video calling via Agora.io.
+
+**Agora.io Setup:**
+- Create an Agora.io project in the Agora Console
+- Obtain App ID and App Certificate
+- Use Agora's token server (or Cloud Function) to generate temporary tokens for each call
+- Install `react-native-agora` package
 
 **Initiating a Call:**
 - Tap voice/video call icon in chat room header
-- Create a Daily.co room via their REST API (`POST https://api.daily.co/v1/rooms`)
-- Write a `calls` document to Firestore with `status: 'ringing'`, `dailyRoomUrl`, caller and receiver IDs
-- Navigate caller to the Call Screen with the room URL
+- Generate a unique channel name (e.g., `call_{callerId}_{receiverId}_{timestamp}`)
+- Generate Agora token via backend/Cloud Function for both caller and receiver
+- Write a `calls` document to Firestore with `status: 'ringing'`, `agoraChannelName`, `agoraToken`, caller and receiver IDs
+- Navigate caller to the Call Screen and join the Agora channel
 
 **Incoming Call:**
 - Use Firestore `onSnapshot` to listen for new call documents where `receiverId` = current userId and `status = 'ringing'`
@@ -750,23 +803,24 @@ export interface Call {
   - Ringtone plays using `expo-av`
 
 **Call Screen:**
-- Video call: local video feed small (bottom-right corner, draggable), remote video full-screen
+- Use `react-native-agora` RtcEngine to manage the call
+- Video call: local video feed small (bottom-right corner, draggable), remote video full-screen using AgoraView
 - Voice call: large avatar centered on dark background
 - Controls row at bottom:
-  - Mute microphone toggle
-  - Toggle camera (video only)
-  - Flip camera (video only)
-  - Speaker toggle
-  - End call (red)
+  - Mute microphone toggle (`muteLocalAudioStream`)
+  - Toggle camera (video only, `enableLocalVideo`)
+  - Flip camera (video only, `switchCamera`)
+  - Speaker toggle (`setEnableSpeakerphone`)
+  - End call (red, `leaveChannel`)
 - Timer showing call duration
-- On end call: update `calls` document `status: 'ended'`, `endedAt: now`, navigate back
+- On end call: leave Agora channel, update `calls` document `status: 'ended'`, `endedAt: now`, navigate back
 
 **Call Log Screen (Calls Tab):**
 - Each row: contact avatar, name, call type icon (phone or video), direction arrow (incoming/outgoing), timestamp
 - Missed calls shown in red
 - Tap any row to call back
 
-**Deliverable:** Full voice and video calling working through Daily.co rooms.
+**Deliverable:** Full voice and video calling working through Agora.io channels.
 
 ---
 
