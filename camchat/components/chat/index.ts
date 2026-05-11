@@ -10,3 +10,5 @@ export { default as DateSeparator } from './DateSeparator';
 export { TypingIndicator } from './TypingIndicator';
 export { MessageActionsSheet } from './MessageActionsSheet';
 export { AttachmentPicker } from './AttachmentPicker';
+export { VoiceRecordingBar } from './VoiceRecordingBar';
+export { VoiceNotePlayer } from './VoiceNotePlayer';

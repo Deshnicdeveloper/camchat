@@ -29,6 +29,7 @@ import { AttachmentPicker } from '../../../components/chat/AttachmentPicker';
 import { ImageViewer } from '../../../components/ui/ImageViewer';
 import { useMessages } from '../../../hooks/useMessages';
 import { useChat } from '../../../hooks/useChat';
+import { useVoicePlayback } from '../../../hooks/useVoicePlayback';
 import { useAuthStore } from '../../../store/authStore';
 import { getChatById } from '../../../lib/chat';
 import { getUsersByIds } from '../../../lib/contacts';
@@ -70,6 +71,17 @@ export default function ChatDetailScreen() {
   const [imageViewerUrl, setImageViewerUrl] = useState<string | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
+
+  // Voice playback hook
+  const {
+    isPlaying: isPlayingVoice,
+    currentPosition: voicePosition,
+    playbackSpeed,
+    activeMessageId: playingMessageId,
+    play: playVoiceNote,
+    pause: pauseVoiceNote,
+    toggleSpeed: toggleVoiceSpeed,
+  } = useVoicePlayback();
 
   // Load chat data
   useEffect(() => {
@@ -330,6 +342,29 @@ export default function ChatDetailScreen() {
     [setTyping]
   );
 
+  // Handle voice note send
+  const handleSendVoiceNote = useCallback(
+    async (uri: string, duration: number) => {
+      await sendVoice(uri, duration);
+
+      // Scroll to bottom
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    },
+    [sendVoice]
+  );
+
+  // Handle voice note play
+  const handleVoiceNotePlay = useCallback(
+    (message: Message) => {
+      if (message.mediaUrl) {
+        playVoiceNote(message.mediaUrl, message.id);
+      }
+    },
+    [playVoiceNote]
+  );
+
   // Render list item
   const renderItem = useCallback(
     ({ item }: { item: ListItem }) => {
@@ -339,6 +374,7 @@ export default function ChatDetailScreen() {
 
       const message = item.data;
       const isSent = message.senderId === user?.uid;
+      const isThisMessagePlaying = playingMessageId === message.id;
 
       return (
         <MessageBubble
@@ -350,10 +386,17 @@ export default function ChatDetailScreen() {
               ? () => handleImagePress(message.mediaUrl!)
               : undefined
           }
+          // Voice note playback props
+          isPlayingVoiceNote={isThisMessagePlaying && isPlayingVoice}
+          voiceNotePosition={isThisMessagePlaying ? voicePosition : 0}
+          voiceNotePlaybackSpeed={playbackSpeed}
+          onVoiceNotePlay={() => handleVoiceNotePlay(message)}
+          onVoiceNotePause={pauseVoiceNote}
+          onVoiceNoteSpeedToggle={toggleVoiceSpeed}
         />
       );
     },
-    [user?.uid, handleMessageLongPress, handleImagePress]
+    [user?.uid, handleMessageLongPress, handleImagePress, playingMessageId, isPlayingVoice, voicePosition, playbackSpeed, handleVoiceNotePlay, pauseVoiceNote, toggleVoiceSpeed]
   );
 
   // Key extractor
@@ -470,6 +513,7 @@ export default function ChatDetailScreen() {
         {/* Input */}
         <MessageInput
           onSendMessage={handleSendMessage}
+          onSendVoiceNote={handleSendVoiceNote}
           onAttachPress={() => setShowAttachmentPicker(true)}
           onTextChange={handleTextChange}
           replyingTo={
