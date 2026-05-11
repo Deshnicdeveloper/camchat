@@ -4,7 +4,14 @@
  */
 
 import { memo, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  Modal,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, Radius } from '../../constants';
 import { t } from '../../lib/i18n';
@@ -56,12 +63,9 @@ export const AttachmentPicker = memo(function AttachmentPicker({
   onClose,
   onSelect,
 }: AttachmentPickerProps) {
-  const handleBackdropPress = useCallback(() => {
-    onClose();
-  }, [onClose]);
-
   const handleSelect = useCallback(
     (type: AttachmentType) => {
+      console.log(`🎯 AttachmentPicker: ${type} button pressed`);
       onSelect(type);
     },
     [onSelect]
@@ -74,8 +78,14 @@ export const AttachmentPicker = memo(function AttachmentPicker({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.backdrop} onPress={handleBackdropPress}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+      <View style={styles.container}>
+        {/* Backdrop - tapping closes the modal */}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.backdrop} />
+        </TouchableWithoutFeedback>
+
+        {/* Sheet content - does not close modal when tapped */}
+        <View style={styles.sheet}>
           {/* Drag Handle */}
           <View style={styles.handleContainer}>
             <View style={styles.handle} />
@@ -87,10 +97,11 @@ export const AttachmentPicker = memo(function AttachmentPicker({
           {/* Options Grid */}
           <View style={styles.optionsGrid}>
             {ATTACHMENT_OPTIONS.map((option) => (
-              <Pressable
+              <TouchableOpacity
                 key={option.type}
                 style={styles.optionButton}
                 onPress={() => handleSelect(option.type)}
+                activeOpacity={0.7}
               >
                 <View
                   style={[styles.optionIcon, { backgroundColor: option.color }]}
@@ -102,31 +113,38 @@ export const AttachmentPicker = memo(function AttachmentPicker({
                   />
                 </View>
                 <Text style={styles.optionLabel}>{t(option.label)}</Text>
-              </Pressable>
+              </TouchableOpacity>
             ))}
           </View>
 
           {/* Cancel Button */}
-          <Pressable style={styles.cancelButton} onPress={onClose}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
             <Text style={styles.cancelText}>{t('common.cancel')}</Text>
-          </Pressable>
-        </Pressable>
-      </Pressable>
+          </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 });
 
 const styles = StyleSheet.create({
-  backdrop: {
+  container: {
     flex: 1,
-    backgroundColor: Colors.overlay,
     justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.overlay,
   },
   sheet: {
     backgroundColor: Colors.background,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing.xl + 20, // Extra padding for safe area
   },
   handleContainer: {
     alignItems: 'center',
@@ -156,6 +174,7 @@ const styles = StyleSheet.create({
     width: '22%',
     alignItems: 'center',
     marginBottom: Spacing.lg,
+    paddingVertical: Spacing.sm,
   },
   optionIcon: {
     width: 56,
