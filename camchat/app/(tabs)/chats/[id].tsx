@@ -33,6 +33,7 @@ import { useVoicePlayback } from '../../../hooks/useVoicePlayback';
 import { useAuthStore } from '../../../store/authStore';
 import { getChatById } from '../../../lib/chat';
 import { getUsersByIds } from '../../../lib/contacts';
+import { uploadVoiceNoteFromUri } from '../../../lib/storage';
 import type { Message, Chat, ReplyReference, UserProfile } from '../../../types';
 
 // Helper to check if two dates are on different days
@@ -345,14 +346,30 @@ export default function ChatDetailScreen() {
   // Handle voice note send
   const handleSendVoiceNote = useCallback(
     async (uri: string, duration: number) => {
-      await sendVoice(uri, duration);
+      if (!chatId || !user?.uid) return;
+
+      console.log('🎤 Uploading voice note:', uri);
+
+      // Upload voice note to Supabase Storage
+      const uploadResult = await uploadVoiceNoteFromUri(chatId, user.uid, uri);
+
+      if (!uploadResult.success || !uploadResult.url) {
+        console.error('❌ Failed to upload voice note:', uploadResult.error);
+        Alert.alert('Error', 'Failed to upload voice note. Please try again.');
+        return;
+      }
+
+      console.log('✅ Voice note uploaded:', uploadResult.url);
+
+      // Send message with the uploaded URL
+      await sendVoice(uploadResult.url, duration);
 
       // Scroll to bottom
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     },
-    [sendVoice]
+    [chatId, user?.uid, sendVoice]
   );
 
   // Handle voice note play
