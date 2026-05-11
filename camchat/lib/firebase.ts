@@ -19,6 +19,21 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+// Debug: Log config in development (only shows first/last few chars of API key for security)
+if (__DEV__) {
+  const apiKey = firebaseConfig.apiKey || '';
+  const maskedKey = apiKey ? `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}` : 'NOT SET';
+  console.log('🔥 Firebase Config:', {
+    apiKey: maskedKey,
+    projectId: firebaseConfig.projectId,
+    authDomain: firebaseConfig.authDomain,
+  });
+
+  if (!firebaseConfig.apiKey) {
+    console.error('❌ Firebase API Key is not set! Make sure .env file exists and restart Expo with: npx expo start -c');
+  }
+}
+
 // Initialize Firebase only if it hasn't been initialized yet
 let app: FirebaseApp;
 let auth: Auth;
