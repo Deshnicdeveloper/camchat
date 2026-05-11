@@ -63,16 +63,21 @@ export async function createCall(
       type,
       status: 'ringing',
       agoraChannelName: channelName,
-      // Token will be generated on the server side in production
-      // For development, we use null token (App ID only authentication)
-      agoraToken: undefined,
       createdAt: new Date(),
     };
 
-    await setDoc(doc(callsCollection, callId), {
-      ...call,
+    // Build Firestore document - exclude undefined fields
+    const firestoreDoc: Record<string, unknown> = {
+      id: callId,
+      callerId,
+      receiverId,
+      type,
+      status: 'ringing',
+      agoraChannelName: channelName,
       createdAt: Timestamp.fromDate(call.createdAt),
-    });
+    };
+
+    await setDoc(doc(callsCollection, callId), firestoreDoc);
 
     console.log('📞 Call created:', callId);
     return { success: true, call };
