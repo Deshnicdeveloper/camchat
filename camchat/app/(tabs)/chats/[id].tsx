@@ -20,6 +20,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as Location from 'expo-location';
 import { Colors, Typography, Spacing, Radius } from '../../../constants';
 import { t } from '../../../lib/i18n';
 import { formatLastSeen } from '../../../utils/formatters';
@@ -31,11 +34,12 @@ import { ImageViewer } from '../../../components/ui/ImageViewer';
 import { useMessages } from '../../../hooks/useMessages';
 import { useChat } from '../../../hooks/useChat';
 import { useVoicePlayback } from '../../../hooks/useVoicePlayback';
+import { useVoiceNoteCache } from '../../../hooks/useVoiceNoteCache';
 import { useAuthStore } from '../../../store/authStore';
 import { getChatById } from '../../../lib/chat';
 import { getUsersByIds } from '../../../lib/contacts';
-import { uploadVoiceNoteFromUri } from '../../../lib/storage';
-import type { Message, Chat, ReplyReference, UserProfile } from '../../../types';
+import { uploadVoiceNoteFromUri, uploadChatMediaFromUri } from '../../../lib/storage';
+import type { Message, Chat, ReplyReference, UserProfile, LocationData } from '../../../types';
 
 // Helper to check if two dates are on different days
 function isDifferentDay(date1: Date, date2: Date): boolean {
@@ -61,6 +65,7 @@ export default function ChatDetailScreen() {
   const [participant, setParticipant] = useState<UserProfile | null>(null);
   const [participants, setParticipants] = useState<Map<string, UserProfile>>(new Map());
   const [isLoadingChat, setIsLoadingChat] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
 
   // UI state
   const [replyingTo, setReplyingTo] = useState<{
@@ -85,6 +90,9 @@ export default function ChatDetailScreen() {
     pause: pauseVoiceNote,
     toggleSpeed: toggleVoiceSpeed,
   } = useVoicePlayback();
+
+  // Voice note cache hook
+  const voiceCache = useVoiceNoteCache();
 
   // Load chat data
   useEffect(() => {
@@ -155,8 +163,10 @@ export default function ChatDetailScreen() {
     typingUsers,
     sendText,
     sendImage,
+    sendVideo,
     sendVoice,
     sendDocument,
+    sendLocation,
     setTyping,
     reactToMessage,
     toggleStar,
@@ -346,38 +356,252 @@ export default function ChatDetailScreen() {
     setSelectedMessage(null);
   }, [selectedMessage, deleteMessage]);
 
+  // Helper to scroll to bottom after sending
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  }, []);
+
+  // Handle camera capture
+  const handleCamera = useCallback(async () => {
+    if (!chatId || !user?.uid) return;
+
+    try {
+      // Request camera permission
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t('common.error'), t('attachments.cameraPermission'));
+        return;
+      }
+
+      // Launch camera
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        quality: 0.8,
+        videoMaxDuration: 60,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      setIsUploading(true);
+
+      const isVideo = asset.type === 'video';
+      const mediaType = isVideo ? 'video' : 'image';
+
+      console.log(`📸 Uploading ${mediaType} from camera...`);
+
+      const uploadResult = await uploadChatMediaFromUri(
+        chatId,
+        user.uid,
+        asset.uri,
+        mediaType
+      );
+
+      if (!uploadResult.success || !uploadResult.url) {
+        throw new Error(uploadResult.error || 'Upload failed');
+      }
+
+      console.log(`✅ ${mediaType} uploaded:`, uploadResult.url);
+
+      if (isVideo) {
+        await sendVideo(uploadResult.url, asset.uri); // Use original as thumbnail
+      } else {
+        await sendImage(uploadResult.url);
+      }
+
+      scrollToBottom();
+    } catch (error) {
+      console.error('Camera error:', error);
+      Alert.alert(t('common.error'), t('attachments.sendFailed'));
+    } finally {
+      setIsUploading(false);
+    }
+  }, [chatId, user?.uid, sendImage, sendVideo, scrollToBottom]);
+
+  // Handle gallery picker
+  const handleGallery = useCallback(async () => {
+    if (!chatId || !user?.uid) return;
+
+    try {
+      // Request media library permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t('common.error'), t('attachments.galleryPermission'));
+        return;
+      }
+
+      // Pick media
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        quality: 0.8,
+        videoMaxDuration: 60,
+        allowsMultipleSelection: false,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      setIsUploading(true);
+
+      const isVideo = asset.type === 'video';
+      const mediaType = isVideo ? 'video' : 'image';
+
+      console.log(`🖼️ Uploading ${mediaType} from gallery...`);
+
+      const uploadResult = await uploadChatMediaFromUri(
+        chatId,
+        user.uid,
+        asset.uri,
+        mediaType
+      );
+
+      if (!uploadResult.success || !uploadResult.url) {
+        throw new Error(uploadResult.error || 'Upload failed');
+      }
+
+      console.log(`✅ ${mediaType} uploaded:`, uploadResult.url);
+
+      if (isVideo) {
+        await sendVideo(uploadResult.url, asset.uri);
+      } else {
+        await sendImage(uploadResult.url);
+      }
+
+      scrollToBottom();
+    } catch (error) {
+      console.error('Gallery error:', error);
+      Alert.alert(t('common.error'), t('attachments.sendFailed'));
+    } finally {
+      setIsUploading(false);
+    }
+  }, [chatId, user?.uid, sendImage, sendVideo, scrollToBottom]);
+
+  // Handle document picker
+  const handleDocument = useCallback(async () => {
+    if (!chatId || !user?.uid) return;
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      setIsUploading(true);
+
+      console.log('📄 Uploading document:', asset.name);
+
+      const uploadResult = await uploadChatMediaFromUri(
+        chatId,
+        user.uid,
+        asset.uri,
+        'document'
+      );
+
+      if (!uploadResult.success || !uploadResult.url) {
+        throw new Error(uploadResult.error || 'Upload failed');
+      }
+
+      console.log('✅ Document uploaded:', uploadResult.url);
+
+      await sendDocument(uploadResult.url, asset.name, asset.size || 0);
+      scrollToBottom();
+    } catch (error) {
+      console.error('Document error:', error);
+      Alert.alert(t('common.error'), t('attachments.sendFailed'));
+    } finally {
+      setIsUploading(false);
+    }
+  }, [chatId, user?.uid, sendDocument, scrollToBottom]);
+
+  // Handle location sharing
+  const handleLocation = useCallback(async () => {
+    try {
+      // Request location permission
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t('common.error'), t('attachments.locationPermission'));
+        return;
+      }
+
+      setIsUploading(true);
+      console.log('📍 Getting location...');
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      // Try to get address
+      let label = 'My Location';
+      try {
+        const [address] = await Location.reverseGeocodeAsync({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        if (address) {
+          label = [address.street, address.city, address.country]
+            .filter(Boolean)
+            .join(', ');
+        }
+      } catch (e) {
+        console.log('Could not reverse geocode');
+      }
+
+      const locationData: LocationData = {
+        lat: location.coords.latitude,
+        lng: location.coords.longitude,
+        label,
+      };
+
+      console.log('✅ Location obtained:', locationData);
+
+      await sendLocation(locationData);
+      scrollToBottom();
+    } catch (error) {
+      console.error('Location error:', error);
+      Alert.alert(t('common.error'), t('attachments.locationFailed'));
+    } finally {
+      setIsUploading(false);
+    }
+  }, [sendLocation, scrollToBottom]);
+
   // Handle attachment selection
   const handleAttachment = useCallback(
     async (type: 'camera' | 'gallery' | 'document' | 'location') => {
       setShowAttachmentPicker(false);
 
-      // TODO: Implement attachment handling
       switch (type) {
         case 'camera':
-          // Launch camera
+          await handleCamera();
           break;
         case 'gallery':
-          // Pick from gallery
+          await handleGallery();
           break;
         case 'document':
-          // Pick document
+          await handleDocument();
           break;
         case 'location':
-          // Get location
+          await handleLocation();
           break;
       }
     },
-    []
+    [handleCamera, handleGallery, handleDocument, handleLocation]
   );
 
   // Handle voice call
   const handleVoiceCall = useCallback(() => {
     // TODO: Implement voice call
+    Alert.alert('Coming Soon', 'Voice calls will be available in a future update.');
   }, []);
 
   // Handle video call
   const handleVideoCall = useCallback(() => {
     // TODO: Implement video call
+    Alert.alert('Coming Soon', 'Video calls will be available in a future update.');
   }, []);
 
   // Handle text change for typing indicator
@@ -410,21 +634,40 @@ export default function ChatDetailScreen() {
       await sendVoice(uploadResult.url, duration);
 
       // Scroll to bottom
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      scrollToBottom();
     },
-    [chatId, user?.uid, sendVoice]
+    [chatId, user?.uid, sendVoice, scrollToBottom]
   );
 
-  // Handle voice note play
+  // Handle voice note download
+  const handleVoiceNoteDownload = useCallback(
+    async (message: Message) => {
+      if (!message.mediaUrl) return;
+      await voiceCache.download(message.mediaUrl, message.id);
+    },
+    [voiceCache]
+  );
+
+  // Handle voice note play - uses cached local file
   const handleVoiceNotePlay = useCallback(
-    (message: Message) => {
-      if (message.mediaUrl) {
-        playVoiceNote(message.mediaUrl, message.id);
+    async (message: Message) => {
+      if (!message.mediaUrl) return;
+
+      // Check if downloaded
+      let localUri = voiceCache.getLocalUri(message.mediaUrl);
+
+      if (!localUri) {
+        // Download first
+        console.log('📥 Downloading voice note before playing...');
+        localUri = await voiceCache.download(message.mediaUrl, message.id);
+      }
+
+      if (localUri) {
+        // Play from local cache
+        playVoiceNote(localUri, message.id);
       }
     },
-    [playVoiceNote]
+    [voiceCache, playVoiceNote]
   );
 
   // Render list item
@@ -440,6 +683,18 @@ export default function ChatDetailScreen() {
       const isGroupChat = chat?.type === 'group';
       const showSenderInfo = isGroupChat && !isSent;
 
+      // Voice note cache state
+      const isVoiceNote = message.type === 'audio' && message.mediaUrl;
+      const isVoiceNoteDownloaded = isVoiceNote
+        ? voiceCache.isDownloaded(message.mediaUrl!)
+        : true;
+      const isVoiceNoteDownloading = isVoiceNote
+        ? voiceCache.isDownloading(message.mediaUrl!)
+        : false;
+      const voiceNoteDownloadProgress = isVoiceNote
+        ? voiceCache.getProgress(message.mediaUrl!)
+        : 0;
+
       return (
         <MessageBubble
           message={message}
@@ -449,7 +704,7 @@ export default function ChatDetailScreen() {
           senderAvatar={showSenderInfo ? getParticipantAvatar(message.senderId) : undefined}
           onLongPress={() => handleMessageLongPress(message)}
           onImagePress={
-            message.type === 'image' && message.mediaUrl
+            (message.type === 'image' || message.type === 'video') && message.mediaUrl
               ? () => handleImagePress(message.mediaUrl!)
               : undefined
           }
@@ -460,10 +715,31 @@ export default function ChatDetailScreen() {
           onVoiceNotePlay={() => handleVoiceNotePlay(message)}
           onVoiceNotePause={pauseVoiceNote}
           onVoiceNoteSpeedToggle={toggleVoiceSpeed}
+          // Voice note download props
+          isVoiceNoteDownloaded={isVoiceNoteDownloaded}
+          isVoiceNoteDownloading={isVoiceNoteDownloading}
+          voiceNoteDownloadProgress={voiceNoteDownloadProgress}
+          onVoiceNoteDownload={() => handleVoiceNoteDownload(message)}
         />
       );
     },
-    [user?.uid, chat?.type, handleMessageLongPress, handleImagePress, playingMessageId, isPlayingVoice, voicePosition, playbackSpeed, handleVoiceNotePlay, pauseVoiceNote, toggleVoiceSpeed, getParticipantName, getParticipantAvatar]
+    [
+      user?.uid,
+      chat?.type,
+      handleMessageLongPress,
+      handleImagePress,
+      playingMessageId,
+      isPlayingVoice,
+      voicePosition,
+      playbackSpeed,
+      handleVoiceNotePlay,
+      pauseVoiceNote,
+      toggleVoiceSpeed,
+      voiceCache,
+      handleVoiceNoteDownload,
+      getParticipantName,
+      getParticipantAvatar,
+    ]
   );
 
   // Key extractor
@@ -573,6 +849,14 @@ export default function ChatDetailScreen() {
         </View>
       </View>
 
+      {/* Uploading indicator */}
+      {isUploading && (
+        <View style={styles.uploadingBar}>
+          <ActivityIndicator size="small" color={Colors.textInverse} />
+          <Text style={styles.uploadingText}>{t('attachments.uploading')}</Text>
+        </View>
+      )}
+
       {/* Messages */}
       <KeyboardAvoidingView
         style={styles.content}
@@ -620,6 +904,7 @@ export default function ChatDetailScreen() {
           onSendMessage={handleSendMessage}
           onSendVoiceNote={handleSendVoiceNote}
           onAttachPress={() => setShowAttachmentPicker(true)}
+          onCameraPress={handleCamera}
           onTextChange={handleTextChange}
           replyingTo={
             replyingTo
@@ -627,7 +912,7 @@ export default function ChatDetailScreen() {
               : null
           }
           onCancelReply={() => setReplyingTo(null)}
-          disabled={isSending}
+          disabled={isSending || isUploading}
         />
       </KeyboardAvoidingView>
 
@@ -739,6 +1024,19 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: Spacing.sm,
+  },
+  uploadingBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primaryLight,
+    paddingVertical: Spacing.xs,
+  },
+  uploadingText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.sm,
+    color: Colors.textInverse,
+    marginLeft: Spacing.sm,
   },
   content: {
     flex: 1,

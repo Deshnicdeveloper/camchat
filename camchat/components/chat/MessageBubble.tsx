@@ -27,21 +27,30 @@ interface MessageBubbleProps {
   onVoiceNotePlay?: () => void;
   onVoiceNotePause?: () => void;
   onVoiceNoteSpeedToggle?: () => void;
+  // Voice note download props
+  isVoiceNoteDownloaded?: boolean;
+  isVoiceNoteDownloading?: boolean;
+  voiceNoteDownloadProgress?: number;
+  onVoiceNoteDownload?: () => void;
 }
 
 /**
- * Render message status ticks
+ * Render message status ticks with proper contrast
  */
-function MessageStatusIcon({ status }: { status: MessageStatus }) {
+function MessageStatusIcon({ status, isSent }: { status: MessageStatus; isSent: boolean }) {
+  // Colors with better contrast
+  const tickColor = isSent ? 'rgba(255,255,255,0.85)' : Colors.textSecondary;
+  const readTickColor = '#34D399'; // Bright green for read status - visible on both backgrounds
+
   switch (status) {
     case 'sending':
-      return <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.7)" />;
+      return <Ionicons name="time-outline" size={14} color={tickColor} />;
     case 'sent':
-      return <Ionicons name="checkmark" size={14} color="rgba(255,255,255,0.7)" />;
+      return <Ionicons name="checkmark" size={14} color={tickColor} />;
     case 'delivered':
-      return <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.7)" />;
+      return <Ionicons name="checkmark-done" size={14} color={tickColor} />;
     case 'read':
-      return <Ionicons name="checkmark-done" size={14} color={Colors.primaryLight} />;
+      return <Ionicons name="checkmark-done" size={14} color={readTickColor} />;
     default:
       return null;
   }
@@ -61,6 +70,10 @@ function MessageBubble({
   onVoiceNotePlay,
   onVoiceNotePause,
   onVoiceNoteSpeedToggle,
+  isVoiceNoteDownloaded = true,
+  isVoiceNoteDownloading = false,
+  voiceNoteDownloadProgress = 0,
+  onVoiceNoteDownload,
 }: MessageBubbleProps) {
   const bubbleStyle = isSent ? styles.bubbleSent : styles.bubbleReceived;
   const textStyle = isSent ? styles.textSent : styles.textReceived;
@@ -98,6 +111,10 @@ function MessageBubble({
             isLoading={false}
             playbackSpeed={voiceNotePlaybackSpeed}
             isSent={isSent}
+            isDownloaded={isVoiceNoteDownloaded}
+            isDownloading={isVoiceNoteDownloading}
+            downloadProgress={voiceNoteDownloadProgress}
+            onDownload={onVoiceNoteDownload}
             onPlay={handleVoiceNotePlay}
             onPause={handleVoiceNotePlay}
             onSpeedToggle={onVoiceNoteSpeedToggle || (() => {})}
@@ -135,7 +152,7 @@ function MessageBubble({
               </Text>
               {message.fileSize && (
                 <Text style={[styles.documentSize, timeStyle]}>
-                  {(message.fileSize / 1024).toFixed(1)} KB
+                  {formatFileSize(message.fileSize)}
                 </Text>
               )}
             </View>
@@ -198,7 +215,7 @@ function MessageBubble({
           <Text style={timeStyle}>{formatMessageTime(message.timestamp)}</Text>
           {isSent && (
             <View style={styles.statusIcon}>
-              <MessageStatusIcon status={message.status} />
+              <MessageStatusIcon status={message.status} isSent={isSent} />
             </View>
           )}
         </View>
@@ -221,6 +238,15 @@ function MessageBubble({
       </Pressable>
     </View>
   );
+}
+
+/**
+ * Format file size in human readable format
+ */
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 const styles = StyleSheet.create({
@@ -276,7 +302,7 @@ const styles = StyleSheet.create({
   timeSent: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.xs,
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255,255,255,0.75)',
   },
   timeReceived: {
     fontFamily: Typography.fontFamily.regular,
