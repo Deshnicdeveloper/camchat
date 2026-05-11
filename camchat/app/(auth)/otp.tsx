@@ -20,9 +20,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useRef, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { Colors, Typography, Spacing, Radius } from '../../constants';
 import { t } from '../../lib/i18n';
 import { useAuth } from '../../hooks/useAuth';
+import { sendOTP } from '../../lib/auth';
+import { app } from '../../lib/firebase';
 
 const OTP_LENGTH = 6;
 const RESEND_TIMEOUT = 60;
@@ -35,7 +38,10 @@ export default function OTPScreen() {
   const [isResending, setIsResending] = useState(false);
   const inputRefs = useRef<TextInput[]>([]);
 
-  const { verifyCode, sendVerificationCode, phoneNumber } = useAuth();
+  // Ref for reCAPTCHA verifier (for resend functionality)
+  const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal>(null);
+
+  const { verifyCode, phoneNumber } = useAuth();
 
   // Get the phone number from params or auth store
   const displayPhone = phone || phoneNumber || '+237 XXX XXX XXX';
@@ -123,17 +129,26 @@ export default function OTPScreen() {
 
     setIsResending(true);
 
-    const result = await sendVerificationCode(phoneToResend);
+    try {
+      const result = await sendOTP(phoneToResend, recaptchaVerifier.current!);
 
-    setIsResending(false);
+      setIsResending(false);
 
-    if (result.success) {
-      setResendTimer(RESEND_TIMEOUT);
-      Alert.alert(t('common.success'), t('auth.codeSent'));
-    } else {
+      if (result.success) {
+        setResendTimer(RESEND_TIMEOUT);
+        Alert.alert(t('common.success'), t('auth.codeSent'));
+      } else {
+        Alert.alert(
+          t('common.error'),
+          result.error || t('auth.sendOtpError'),
+          [{ text: t('common.ok') }]
+        );
+      }
+    } catch (error) {
+      setIsResending(false);
       Alert.alert(
         t('common.error'),
-        result.error || t('auth.sendOtpError'),
+        t('auth.sendOtpError'),
         [{ text: t('common.ok') }]
       );
     }
@@ -143,6 +158,13 @@ export default function OTPScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Firebase reCAPTCHA Modal (for resend) */}
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={app.options}
+        attemptInvisibleVerification={true}
+      />
+
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
