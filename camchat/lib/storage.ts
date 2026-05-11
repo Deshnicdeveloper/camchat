@@ -13,6 +13,9 @@ interface UploadResult {
   error?: string;
 }
 
+// Progress callback type
+type ProgressCallback = (progress: number) => void;
+
 /**
  * Upload a file to Supabase Storage from a local URI
  * @param bucket - The storage bucket name
@@ -136,14 +139,94 @@ export async function uploadChatMediaFromUri(
   chatId: string,
   senderId: string,
   fileUri: string,
-  mediaType: 'image' | 'video' | 'document' | 'audio'
+  mediaType: 'image' | 'video' | 'document' | 'audio',
+  onProgress?: ProgressCallback
 ): Promise<UploadResult> {
   const timestamp = Date.now();
   const extension = getFileExtension(fileUri) || getDefaultExtension(mediaType);
   const path = `${chatId}/${senderId}/${mediaType}_${timestamp}.${extension}`;
   const contentType = getContentType(mediaType, extension);
 
-  return uploadFileFromUri(STORAGE_BUCKETS.CHAT_MEDIA, path, fileUri, contentType);
+  return uploadFileFromUriWithProgress(STORAGE_BUCKETS.CHAT_MEDIA, path, fileUri, contentType, onProgress);
+}
+
+/**
+ * Upload a file to Supabase Storage from a local URI with progress tracking
+ * Note: Supabase SDK doesn't support progress events natively, so we simulate
+ * progress based on file read (10%) and upload phases (90%)
+ */
+async function uploadFileFromUriWithProgress(
+  bucket: StorageBucket,
+  path: string,
+  fileUri: string,
+  contentType: string = 'image/jpeg',
+  onProgress?: ProgressCallback
+): Promise<UploadResult> {
+  try {
+    console.log(`📤 Uploading file to ${bucket}/${path}`);
+
+    // Report initial progress
+    onProgress?.(5);
+
+    // Read the file as base64
+    const base64 = await FileSystem.readAsStringAsync(fileUri, {
+      encoding: 'base64',
+    });
+
+    // File read complete - 20%
+    onProgress?.(20);
+
+    // Convert base64 to ArrayBuffer
+    const arrayBuffer = decode(base64);
+
+    // Conversion complete - 30%
+    onProgress?.(30);
+
+    // Upload to Supabase - simulate progress during upload
+    // Since Supabase SDK doesn't provide upload progress, we'll simulate it
+    const uploadPromise = supabase.storage
+      .from(bucket)
+      .upload(path, arrayBuffer, {
+        contentType,
+        upsert: true,
+      });
+
+    // Simulate progress while uploading
+    let simulatedProgress = 30;
+    const progressInterval = setInterval(() => {
+      if (simulatedProgress < 90) {
+        simulatedProgress += 10;
+        onProgress?.(simulatedProgress);
+      }
+    }, 300);
+
+    const { data, error } = await uploadPromise;
+
+    clearInterval(progressInterval);
+
+    if (error) {
+      console.error('❌ Upload error:', error);
+      return { success: false, error: error.message };
+    }
+
+    // Upload complete - 95%
+    onProgress?.(95);
+
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(path);
+
+    // Done - 100%
+    onProgress?.(100);
+
+    console.log('✅ Upload successful:', urlData.publicUrl);
+    return { success: true, url: urlData.publicUrl };
+  } catch (error) {
+    console.error('❌ Upload exception:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to upload file';
+    return { success: false, error: errorMessage };
+  }
 }
 
 /**
