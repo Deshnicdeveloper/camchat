@@ -3,7 +3,17 @@
  * User enters the verification code sent to their phone
  */
 
-import { View, Text, StyleSheet, TextInput, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useState, useRef, useEffect } from 'react';
@@ -80,68 +90,78 @@ export default function OTPScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
-        </Pressable>
-      </View>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.inner}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Pressable onPress={() => router.back()} style={styles.backButton}>
+                <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+              </Pressable>
+            </View>
 
-      {/* Content */}
-      <View style={styles.content}>
-        <Text style={styles.title}>{t('auth.otpTitle')}</Text>
-        <Text style={styles.subtitle}>
-          {t('auth.otpSubtitle')} +237 6XX XXX XXX
-        </Text>
+            {/* Content */}
+            <View style={styles.content}>
+              <Text style={styles.title}>{t('auth.otpTitle')}</Text>
+              <Text style={styles.subtitle}>
+                {t('auth.otpSubtitle')} +237 6XX XXX XXX
+              </Text>
 
-        {/* OTP Inputs */}
-        <View style={styles.otpContainer}>
-          {otp.map((digit, index) => (
-            <TextInput
-              key={index}
-              ref={(ref) => {
-                if (ref) inputRefs.current[index] = ref;
-              }}
-              style={[
-                styles.otpInput,
-                digit && styles.otpInputFilled,
-              ]}
-              value={digit}
-              onChangeText={(value) => handleOtpChange(value, index)}
-              onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
-              keyboardType="number-pad"
-              maxLength={OTP_LENGTH}
-              selectTextOnFocus
-            />
-          ))}
-        </View>
+              {/* OTP Inputs */}
+              <View style={styles.otpContainer}>
+                {otp.map((digit, index) => (
+                  <TextInput
+                    key={index}
+                    ref={(ref) => {
+                      if (ref) inputRefs.current[index] = ref;
+                    }}
+                    style={[
+                      styles.otpInput,
+                      digit && styles.otpInputFilled,
+                    ]}
+                    value={digit}
+                    onChangeText={(value) => handleOtpChange(value, index)}
+                    onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
+                    keyboardType="number-pad"
+                    maxLength={OTP_LENGTH}
+                    selectTextOnFocus
+                  />
+                ))}
+              </View>
 
-        {/* Resend Timer */}
-        <View style={styles.resendContainer}>
-          {resendTimer > 0 ? (
-            <Text style={styles.resendTimer}>
-              {t('auth.resendIn')} {resendTimer}s
-            </Text>
-          ) : (
-            <Pressable onPress={handleResend}>
-              <Text style={styles.resendLink}>{t('auth.resendCode')}</Text>
-            </Pressable>
-          )}
-        </View>
-      </View>
+              {/* Resend Timer */}
+              <View style={styles.resendContainer}>
+                {resendTimer > 0 ? (
+                  <Text style={styles.resendTimer}>
+                    {t('auth.resendIn')} {resendTimer}s
+                  </Text>
+                ) : (
+                  <Pressable onPress={handleResend}>
+                    <Text style={styles.resendLink}>{t('auth.resendCode')}</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
 
-      {/* Verify Button */}
-      <View style={styles.footer}>
-        <Pressable
-          style={[styles.button, !isComplete && styles.buttonDisabled]}
-          onPress={handleVerify}
-          disabled={!isComplete}
-        >
-          <Text style={[styles.buttonText, !isComplete && styles.buttonTextDisabled]}>
-            {t('auth.continue')}
-          </Text>
-        </Pressable>
-      </View>
+            {/* Verify Button */}
+            <View style={styles.footer}>
+              <Pressable
+                style={[styles.button, !isComplete && styles.buttonDisabled]}
+                onPress={handleVerify}
+                disabled={!isComplete}
+              >
+                <Text style={[styles.buttonText, !isComplete && styles.buttonTextDisabled]}>
+                  {t('auth.continue')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -150,6 +170,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.primary,
+  },
+  keyboardAvoid: {
+    flex: 1,
+  },
+  inner: {
+    flex: 1,
   },
   header: {
     paddingHorizontal: Spacing.md,
