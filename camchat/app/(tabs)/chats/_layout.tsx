@@ -15,7 +15,7 @@ export default function ChatsLayout() {
       }}
     >
       <Stack.Screen name="index" />
-      <Stack.Screen name="[chatId]" />
+      <Stack.Screen name="[id]" />
     </Stack>
   );
 }
