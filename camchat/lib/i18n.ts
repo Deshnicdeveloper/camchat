@@ -31,6 +31,10 @@ const translations = {
       delete: 'Delete',
       edit: 'Edit',
       ok: 'OK',
+      camera: 'Camera',
+      gallery: 'Gallery',
+      permissionRequired: 'Permission Required',
+      you: 'You',
     },
 
     // Onboarding
@@ -96,11 +100,18 @@ const translations = {
     status: {
       title: 'Status',
       myStatus: 'My Status',
-      addStatus: 'Add Status',
+      addStatus: 'Tap to add status',
       noStatus: 'None of your contacts have posted a status today.',
       recentUpdates: 'Recent Updates',
       mutedUpdates: 'Muted Updates',
       replyTo: 'Reply to',
+      typeStatus: 'Type a status...',
+      text: 'Text',
+      media: 'Media',
+      addCaption: 'Add a caption...',
+      changeMedia: 'Change',
+      views: 'views',
+      viewedBy: 'Viewed by',
     },
 
     // Calls
@@ -243,6 +254,10 @@ const translations = {
       delete: 'Supprimer',
       edit: 'Modifier',
       ok: 'OK',
+      camera: 'Caméra',
+      gallery: 'Galerie',
+      permissionRequired: 'Permission requise',
+      you: 'Vous',
     },
 
     // Onboarding
@@ -308,11 +323,18 @@ const translations = {
     status: {
       title: 'Statuts',
       myStatus: 'Mon Statut',
-      addStatus: 'Ajouter un statut',
+      addStatus: 'Appuyez pour ajouter un statut',
       noStatus: 'Aucun de vos contacts n\'a publié de statut aujourd\'hui.',
       recentUpdates: 'Mises à jour récentes',
       mutedUpdates: 'Mises à jour en sourdine',
       replyTo: 'Répondre à',
+      typeStatus: 'Écrire un statut...',
+      text: 'Texte',
+      media: 'Média',
+      addCaption: 'Ajouter une légende...',
+      changeMedia: 'Changer',
+      views: 'vues',
+      viewedBy: 'Vu par',
     },
 
     // Calls
