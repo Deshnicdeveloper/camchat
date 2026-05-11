@@ -275,3 +275,26 @@ export async function getUsersByIds(userIds: string[]): Promise<User[]> {
     return users;
   }
 }
+
+/**
+ * Get a single user's profile by ID
+ */
+export async function getUserProfile(userId: string): Promise<import('../types').UserProfile | null> {
+  try {
+    const users = await getUsersByIds([userId]);
+    if (users.length === 0) return null;
+
+    const user = users[0];
+    return {
+      uid: user.uid,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      about: user.about,
+      isOnline: user.isOnline,
+      lastSeen: user.lastSeen,
+    };
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    return null;
+  }
+}
