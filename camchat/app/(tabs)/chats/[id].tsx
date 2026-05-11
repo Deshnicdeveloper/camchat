@@ -31,6 +31,7 @@ import { useMessages } from '../../../hooks/useMessages';
 import { useChat } from '../../../hooks/useChat';
 import { useAuthStore } from '../../../store/authStore';
 import { getChatById } from '../../../lib/chat';
+import { getUsersByIds } from '../../../lib/contacts';
 import type { Message, Chat, ReplyReference, UserProfile } from '../../../types';
 
 // Helper to check if two dates are on different days
@@ -86,7 +87,25 @@ export default function ChatDetailScreen() {
           (p) => p !== user?.uid
         );
         if (otherParticipantId) {
-          const participantData = getParticipant(otherParticipantId);
+          // First try to get from cache
+          let participantData = getParticipant(otherParticipantId);
+
+          // If not in cache, fetch from Firestore
+          if (!participantData) {
+            console.log('📡 Fetching participant data from Firestore:', otherParticipantId);
+            const users = await getUsersByIds([otherParticipantId]);
+            if (users.length > 0) {
+              const u = users[0];
+              participantData = {
+                uid: u.uid,
+                displayName: u.displayName,
+                avatarUrl: u.avatarUrl,
+                about: u.about,
+                isOnline: u.isOnline,
+                lastSeen: u.lastSeen,
+              };
+            }
+          }
           setParticipant(participantData || null);
         }
       }
