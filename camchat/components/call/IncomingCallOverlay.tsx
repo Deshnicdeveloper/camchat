@@ -5,7 +5,6 @@
 
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import Animated, {
@@ -19,7 +18,7 @@ import { Colors, Typography, Spacing } from '../../constants';
 import { t } from '../../lib/i18n';
 import type { CallType, UserProfile } from '../../types';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 interface IncomingCallOverlayProps {
   caller: UserProfile;
@@ -54,7 +53,7 @@ export function IncomingCallOverlay({
 
   return (
     <View style={styles.container}>
-      <BlurView intensity={80} tint="dark" style={styles.blurContainer}>
+      <View style={styles.overlayContainer}>
         {/* Caller Info */}
         <View style={styles.callerInfo}>
           <Animated.View style={[styles.avatarRing, pulseStyle]}>
@@ -112,7 +111,7 @@ export function IncomingCallOverlay({
             <Text style={styles.actionLabel}>{t('calls.accept')}</Text>
           </View>
         </View>
-      </BlurView>
+      </View>
     </View>
   );
 }
@@ -122,11 +121,12 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 1000,
   },
-  blurContainer: {
+  overlayContainer: {
     flex: 1,
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: Spacing.xxxl * 2,
+    backgroundColor: 'rgba(10, 32, 112, 0.95)', // Dark primary color with opacity
   },
   callerInfo: {
     flex: 1,
