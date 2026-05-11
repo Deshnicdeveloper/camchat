@@ -15,6 +15,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -416,24 +417,35 @@ export default function ChatDetailScreen() {
 
   // Handle camera capture
   const handleCamera = useCallback(async () => {
-    if (!chatId || !user?.uid) return;
+    console.log('📸 handleCamera called');
+
+    if (!chatId || !user?.uid) {
+      console.log('❌ handleCamera: No chatId or user');
+      return;
+    }
 
     let pendingId: string | null = null;
 
     try {
       // Request camera permission
+      console.log('📸 Requesting camera permission...');
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      console.log('📸 Camera permission status:', status);
+
       if (status !== 'granted') {
         Alert.alert(t('common.error'), t('attachments.cameraPermission'));
         return;
       }
 
       // Launch camera
+      console.log('📸 Launching camera...');
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images', 'videos'],
         quality: 0.8,
         videoMaxDuration: 60,
       });
+
+      console.log('📸 Camera result:', result.canceled ? 'canceled' : 'captured');
 
       if (result.canceled || !result.assets?.[0]) return;
 
@@ -500,25 +512,36 @@ export default function ChatDetailScreen() {
 
   // Handle gallery picker
   const handleGallery = useCallback(async () => {
-    if (!chatId || !user?.uid) return;
+    console.log('🖼️ handleGallery called');
+
+    if (!chatId || !user?.uid) {
+      console.log('❌ handleGallery: No chatId or user');
+      return;
+    }
 
     let pendingId: string | null = null;
 
     try {
       // Request media library permission
+      console.log('🖼️ Requesting media library permission...');
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('🖼️ Media library permission status:', status);
+
       if (status !== 'granted') {
         Alert.alert(t('common.error'), t('attachments.galleryPermission'));
         return;
       }
 
       // Pick media
+      console.log('🖼️ Launching image library...');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images', 'videos'],
         quality: 0.8,
         videoMaxDuration: 60,
         allowsMultipleSelection: false,
       });
+
+      console.log('🖼️ Image picker result:', result.canceled ? 'canceled' : 'selected');
 
       if (result.canceled || !result.assets?.[0]) return;
 
@@ -585,15 +608,23 @@ export default function ChatDetailScreen() {
 
   // Handle document picker
   const handleDocument = useCallback(async () => {
-    if (!chatId || !user?.uid) return;
+    console.log('📄 handleDocument called');
+
+    if (!chatId || !user?.uid) {
+      console.log('❌ handleDocument: No chatId or user');
+      return;
+    }
 
     let pendingId: string | null = null;
 
     try {
+      console.log('📄 Launching document picker...');
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
         copyToCacheDirectory: true,
       });
+
+      console.log('📄 Document picker result:', result.canceled ? 'canceled' : 'selected');
 
       if (result.canceled || !result.assets?.[0]) return;
 
@@ -704,33 +735,66 @@ export default function ChatDetailScreen() {
     }
   }, [sendLocation, scrollToBottom]);
 
-  // Handle attachment selection
+  // Store selected attachment type for delayed execution
+  const pendingAttachmentType = useRef<'camera' | 'gallery' | 'document' | 'location' | null>(null);
+
+  // Execute the pending attachment action after modal closes
+  const executePendingAttachment = useCallback(async () => {
+    const type = pendingAttachmentType.current;
+    if (!type) return;
+
+    pendingAttachmentType.current = null;
+
+    console.log(`📎 Executing attachment action: ${type}`);
+
+    try {
+      switch (type) {
+        case 'camera':
+          await handleCamera();
+          break;
+        case 'gallery':
+          await handleGallery();
+          break;
+        case 'document':
+          await handleDocument();
+          break;
+        case 'location':
+          await handleLocation();
+          break;
+      }
+    } catch (error) {
+      console.error(`❌ Error executing ${type} attachment:`, error);
+      Alert.alert(t('common.error'), t('attachments.sendFailed'));
+    }
+  }, [handleCamera, handleGallery, handleDocument, handleLocation]);
+
+  // Handle attachment selection - store the type and close modal
   const handleAttachment = useCallback(
     (type: 'camera' | 'gallery' | 'document' | 'location') => {
-      // Close the picker first
-      setShowAttachmentPicker(false);
+      console.log(`📎 Attachment selected: ${type}`);
 
-      // Use setTimeout to ensure picker animation completes before launching native pickers
-      // This prevents the race condition between modal close and picker open
-      setTimeout(async () => {
-        switch (type) {
-          case 'camera':
-            await handleCamera();
-            break;
-          case 'gallery':
-            await handleGallery();
-            break;
-          case 'document':
-            await handleDocument();
-            break;
-          case 'location':
-            await handleLocation();
-            break;
-        }
-      }, 300); // 300ms gives enough time for modal to fully close
+      // Store the type for later execution
+      pendingAttachmentType.current = type;
+
+      // Close the picker
+      setShowAttachmentPicker(false);
     },
-    [handleCamera, handleGallery, handleDocument, handleLocation]
+    []
   );
+
+  // Effect to execute attachment action after modal closes
+  useEffect(() => {
+    if (!showAttachmentPicker && pendingAttachmentType.current) {
+      // Wait for modal animation to complete, then use InteractionManager
+      const timer = setTimeout(() => {
+        InteractionManager.runAfterInteractions(() => {
+          executePendingAttachment();
+        });
+      }, 400); // Longer delay to ensure modal is fully closed
+
+      return () => clearTimeout(timer);
+    }
+  }, [showAttachmentPicker, executePendingAttachment]);
 
   // Handle voice call
   const handleVoiceCall = useCallback(() => {
