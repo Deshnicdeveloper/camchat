@@ -26,6 +26,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { Colors, Typography, Spacing, Radius } from '../../constants';
 import { t } from '../../lib/i18n';
 import { useAuth } from '../../hooks/useAuth';
+import { uploadAvatarFromUri } from '../../lib/storage';
+import { getCurrentFirebaseUser } from '../../lib/auth';
 
 // Default about text with lion emoji (Cameroonian cultural identity)
 const DEFAULT_ABOUT = "Hey, I'm on CamChat 🦁";
@@ -69,22 +71,51 @@ export default function ProfileSetupScreen() {
 
     setIsSaving(true);
 
-    // For now, we'll pass the avatar URI. In a real app, you'd upload to Supabase Storage first.
-    const result = await completeProfile(
-      displayName.trim(),
-      about.trim() || DEFAULT_ABOUT,
-      avatarUri || ''
-    );
+    try {
+      let finalAvatarUrl = '';
 
-    setIsSaving(false);
+      // Upload avatar to Supabase if selected
+      if (avatarUri) {
+        const firebaseUser = getCurrentFirebaseUser();
+        if (firebaseUser) {
+          console.log('📤 Uploading avatar to Supabase...');
+          const uploadResult = await uploadAvatarFromUri(firebaseUser.uid, avatarUri);
 
-    if (result.success) {
-      // Navigate to main app
-      router.replace('/(tabs)/chats');
-    } else {
+          if (uploadResult.success && uploadResult.url) {
+            finalAvatarUrl = uploadResult.url;
+            console.log('✅ Avatar uploaded:', finalAvatarUrl);
+          } else {
+            console.warn('⚠️ Avatar upload failed:', uploadResult.error);
+            // Continue without avatar - don't block profile creation
+          }
+        }
+      }
+
+      // Create profile with uploaded avatar URL
+      const result = await completeProfile(
+        displayName.trim(),
+        about.trim() || DEFAULT_ABOUT,
+        finalAvatarUrl
+      );
+
+      setIsSaving(false);
+
+      if (result.success) {
+        // Navigate to main app
+        router.replace('/(tabs)/chats');
+      } else {
+        Alert.alert(
+          t('common.error'),
+          result.error || t('auth.profileSetupError'),
+          [{ text: t('common.ok') }]
+        );
+      }
+    } catch (error) {
+      console.error('Error in handleDone:', error);
+      setIsSaving(false);
       Alert.alert(
         t('common.error'),
-        result.error || t('auth.profileSetupError'),
+        t('auth.profileSetupError'),
         [{ text: t('common.ok') }]
       );
     }
