@@ -4,13 +4,17 @@
  */
 
 import { create } from 'zustand';
-import type { Chat, Message, Contact } from '../types';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Chat, Message, Contact, UserProfile } from '../types';
 
 interface ChatState {
   chats: Chat[];
   messages: Record<string, Message[]>; // keyed by chatId
   contacts: Contact[];
+  participants: Record<string, UserProfile>; // keyed by participantId for quick lookup
   isLoading: boolean;
+  lastSyncTime: number | null; // Contact sync timestamp
 
   // Actions
   setChats: (chats: Chat[]) => void;
@@ -23,67 +27,107 @@ interface ChatState {
   updateMessage: (chatId: string, messageId: string, updates: Partial<Message>) => void;
 
   setContacts: (contacts: Contact[]) => void;
+  setParticipants: (participants: Record<string, UserProfile>) => void;
+  updateParticipant: (participantId: string, updates: Partial<UserProfile>) => void;
   setLoading: (loading: boolean) => void;
+  setLastSyncTime: (time: number) => void;
   clearMessages: (chatId: string) => void;
+  reset: () => void;
 }
 
-export const useChatStore = create<ChatState>((set) => ({
+const initialState = {
   chats: [],
   messages: {},
   contacts: [],
+  participants: {},
   isLoading: false,
+  lastSyncTime: null,
+};
 
-  setChats: (chats) => set({ chats }),
+export const useChatStore = create<ChatState>()(
+  persist(
+    (set) => ({
+      ...initialState,
 
-  addChat: (chat) =>
-    set((state) => ({
-      chats: [chat, ...state.chats],
-    })),
+      setChats: (chats) => set({ chats }),
 
-  updateChat: (chatId, updates) =>
-    set((state) => ({
-      chats: state.chats.map((chat) =>
-        chat.id === chatId ? { ...chat, ...updates } : chat
-      ),
-    })),
+      addChat: (chat) =>
+        set((state) => ({
+          chats: [chat, ...state.chats],
+        })),
 
-  removeChat: (chatId) =>
-    set((state) => ({
-      chats: state.chats.filter((chat) => chat.id !== chatId),
-    })),
+      updateChat: (chatId, updates) =>
+        set((state) => ({
+          chats: state.chats.map((chat) =>
+            chat.id === chatId ? { ...chat, ...updates } : chat
+          ),
+        })),
 
-  setMessages: (chatId, messages) =>
-    set((state) => ({
-      messages: { ...state.messages, [chatId]: messages },
-    })),
+      removeChat: (chatId) =>
+        set((state) => ({
+          chats: state.chats.filter((chat) => chat.id !== chatId),
+        })),
 
-  addMessage: (chatId, message) =>
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [chatId]: [...(state.messages[chatId] || []), message],
-      },
-    })),
+      setMessages: (chatId, messages) =>
+        set((state) => ({
+          messages: { ...state.messages, [chatId]: messages },
+        })),
 
-  updateMessage: (chatId, messageId, updates) =>
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [chatId]: (state.messages[chatId] || []).map((msg) =>
-          msg.id === messageId ? { ...msg, ...updates } : msg
-        ),
-      },
-    })),
+      addMessage: (chatId, message) =>
+        set((state) => ({
+          messages: {
+            ...state.messages,
+            [chatId]: [...(state.messages[chatId] || []), message],
+          },
+        })),
 
-  setContacts: (contacts) => set({ contacts }),
+      updateMessage: (chatId, messageId, updates) =>
+        set((state) => ({
+          messages: {
+            ...state.messages,
+            [chatId]: (state.messages[chatId] || []).map((msg) =>
+              msg.id === messageId ? { ...msg, ...updates } : msg
+            ),
+          },
+        })),
 
-  setLoading: (isLoading) => set({ isLoading }),
+      setContacts: (contacts) => set({ contacts }),
 
-  clearMessages: (chatId) =>
-    set((state) => {
-      const { [chatId]: _, ...rest } = state.messages;
-      return { messages: rest };
+      setParticipants: (participants) => set({ participants }),
+
+      updateParticipant: (participantId, updates) =>
+        set((state) => ({
+          participants: {
+            ...state.participants,
+            [participantId]: {
+              ...state.participants[participantId],
+              ...updates,
+            },
+          },
+        })),
+
+      setLoading: (isLoading) => set({ isLoading }),
+
+      setLastSyncTime: (lastSyncTime) => set({ lastSyncTime }),
+
+      clearMessages: (chatId) =>
+        set((state) => {
+          const { [chatId]: _, ...rest } = state.messages;
+          return { messages: rest };
+        }),
+
+      reset: () => set(initialState),
     }),
-}));
+    {
+      name: 'camchat-chats',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        contacts: state.contacts,
+        participants: state.participants,
+        lastSyncTime: state.lastSyncTime,
+      }),
+    }
+  )
+);
 
 export default useChatStore;

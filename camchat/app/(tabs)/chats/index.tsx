@@ -1,9 +1,9 @@
 /**
  * Chats Screen
- * Displays list of all conversations
+ * Displays list of all conversations with real-time updates
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -13,78 +13,46 @@ import { t } from '../../../lib/i18n';
 import { ChatRow } from '../../../components/chat';
 import { SkeletonChatRow } from '../../../components/ui/Skeleton';
 import { Chat } from '../../../types';
-
-// Mock data for UI development - will be replaced with real data from Firestore
-const MOCK_CHATS: Chat[] = [
-  {
-    id: '1',
-    type: 'direct',
-    participants: ['user1', 'user2'],
-    createdBy: 'user1',
-    createdAt: new Date(),
-    lastMessage: {
-      text: 'Hey! How are you doing today?',
-      senderId: 'user2',
-      type: 'text',
-      timestamp: new Date(),
-    },
-    unreadCount: { user1: 2, user2: 0 },
-  },
-  {
-    id: '2',
-    type: 'direct',
-    participants: ['user1', 'user3'],
-    createdBy: 'user1',
-    createdAt: new Date(Date.now() - 3600000),
-    lastMessage: {
-      text: '',
-      senderId: 'user3',
-      type: 'image',
-      timestamp: new Date(Date.now() - 3600000),
-    },
-    unreadCount: { user1: 0, user3: 0 },
-  },
-  {
-    id: '3',
-    type: 'group',
-    participants: ['user1', 'user2', 'user3', 'user4'],
-    createdBy: 'user1',
-    createdAt: new Date(Date.now() - 86400000),
-    lastMessage: {
-      text: '',
-      senderId: 'user4',
-      type: 'audio',
-      timestamp: new Date(Date.now() - 86400000),
-    },
-    unreadCount: { user1: 5, user2: 0, user3: 0, user4: 0 },
-    groupName: 'CamChat Fam 🇨🇲',
-  },
-];
-
-// Mock participant data
-const MOCK_PARTICIPANTS: Record<string, { name: string; avatar?: string; isOnline: boolean }> = {
-  user2: { name: 'Marie Ngono', isOnline: true },
-  user3: { name: 'Jean-Pierre Kamga', isOnline: false },
-  user4: { name: 'Aminatou Bello', isOnline: true },
-};
-
-const CURRENT_USER_ID = 'user1';
+import { useChat } from '../../../hooks/useChat';
+import { useContacts } from '../../../hooks/useContacts';
+import { useAuthStore } from '../../../store/authStore';
 
 export default function ChatsScreen() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [chats, setChats] = useState<Chat[]>(MOCK_CHATS);
+  const { user } = useAuthStore();
+  const {
+    chats,
+    isLoading,
+    error,
+    getChatParticipant,
+    openChat,
+    archiveChat,
+    muteChat,
+    deleteChat,
+  } = useChat();
+
+  const { sync: syncContacts, isSyncing } = useContacts();
+
+  const currentUserId = user?.uid || '';
+
+  // Sync contacts on first load
+  useEffect(() => {
+    if (user?.uid) {
+      syncContacts();
+    }
+  }, [user?.uid]);
 
   const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    // TODO: Refresh chats from Firestore
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsRefreshing(false);
-  }, []);
+    await syncContacts();
+  }, [syncContacts]);
 
-  const handleChatPress = useCallback((chatId: string) => {
-    router.push(`/(tabs)/chats/${chatId}`);
-  }, []);
+  const handleChatPress = useCallback(
+    async (chatId: string) => {
+      // Reset unread count when opening chat
+      await openChat(chatId);
+      router.push(`/(tabs)/chats/${chatId}`);
+    },
+    [openChat]
+  );
 
   const handleNewChat = useCallback(() => {
     router.push('/new-chat');
@@ -94,43 +62,38 @@ export default function ChatsScreen() {
     // TODO: Implement search
   }, []);
 
-  const handleArchive = useCallback((chatId: string) => {
-    // TODO: Archive chat
-    console.log('Archive chat:', chatId);
-  }, []);
+  const handleArchive = useCallback(
+    async (chatId: string) => {
+      await archiveChat(chatId);
+    },
+    [archiveChat]
+  );
 
-  const handleMute = useCallback((chatId: string) => {
-    // TODO: Mute chat
-    console.log('Mute chat:', chatId);
-  }, []);
+  const handleMute = useCallback(
+    async (chatId: string) => {
+      await muteChat(chatId);
+    },
+    [muteChat]
+  );
 
-  const handleDelete = useCallback((chatId: string) => {
-    // TODO: Delete chat
-    setChats((prev) => prev.filter((c) => c.id !== chatId));
-  }, []);
-
-  const getParticipantInfo = (chat: Chat) => {
-    if (chat.type === 'group') {
-      return {
-        name: chat.groupName || 'Group',
-        avatar: chat.groupAvatarUrl,
-        isOnline: false,
-      };
-    }
-    const participantId = chat.participants.find((p) => p !== CURRENT_USER_ID) || '';
-    return MOCK_PARTICIPANTS[participantId] || { name: 'Unknown', isOnline: false };
-  };
+  const handleDelete = useCallback(
+    async (chatId: string) => {
+      await deleteChat(chatId);
+    },
+    [deleteChat]
+  );
 
   const renderChatItem = useCallback(
     ({ item }: { item: Chat }) => {
-      const participant = getParticipantInfo(item);
+      const participant = getChatParticipant(item);
+
       return (
         <ChatRow
           chat={item}
-          participantName={participant.name}
-          participantAvatar={participant.avatar}
-          isOnline={participant.isOnline}
-          currentUserId={CURRENT_USER_ID}
+          participantName={participant?.displayName || 'Unknown'}
+          participantAvatar={participant?.avatarUrl}
+          isOnline={participant?.isOnline || false}
+          currentUserId={currentUserId}
           onPress={() => handleChatPress(item.id)}
           onArchive={() => handleArchive(item.id)}
           onMute={() => handleMute(item.id)}
@@ -138,7 +101,7 @@ export default function ChatsScreen() {
         />
       );
     },
-    [handleChatPress, handleArchive, handleMute, handleDelete]
+    [currentUserId, getChatParticipant, handleChatPress, handleArchive, handleMute, handleDelete]
   );
 
   const renderEmptyState = () => (
@@ -160,6 +123,16 @@ export default function ChatsScreen() {
     </View>
   );
 
+  const renderError = () => (
+    <View style={styles.errorState}>
+      <Ionicons name="warning-outline" size={48} color={Colors.error} />
+      <Text style={styles.errorText}>{error}</Text>
+      <Pressable style={styles.retryButton} onPress={handleRefresh}>
+        <Text style={styles.retryText}>{t('common.retry')}</Text>
+      </Pressable>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -177,8 +150,10 @@ export default function ChatsScreen() {
 
       {/* Chat List */}
       <View style={styles.content}>
-        {isLoading ? (
+        {isLoading && chats.length === 0 ? (
           renderLoadingSkeleton()
+        ) : error ? (
+          renderError()
         ) : chats.length === 0 ? (
           renderEmptyState()
         ) : (
@@ -190,7 +165,7 @@ export default function ChatsScreen() {
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
-                refreshing={isRefreshing}
+                refreshing={isSyncing}
                 onRefresh={handleRefresh}
                 tintColor={Colors.primary}
                 colors={[Colors.primary]}
@@ -272,5 +247,30 @@ const styles = StyleSheet.create({
   },
   skeletonContainer: {
     flex: 1,
+  },
+  errorState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  errorText: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.base,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: 20,
+  },
+  retryText: {
+    fontFamily: Typography.fontFamily.semibold,
+    fontSize: Typography.size.sm,
+    color: Colors.textInverse,
   },
 });

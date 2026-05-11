@@ -87,6 +87,9 @@ const translations = {
       online: 'Online',
       lastSeen: 'Last seen',
       typing: 'typing...',
+      createError: 'Failed to start chat. Please try again.',
+      archive: 'Archive',
+      mute: 'Mute',
     },
 
     // Status
@@ -150,6 +153,20 @@ const translations = {
       participants: 'participants',
       leaveGroup: 'Leave Group',
       admin: 'Admin',
+    },
+
+    // Contacts
+    contacts: {
+      onCamChat: 'Contacts on CamChat',
+      syncContacts: 'Sync your contacts',
+      syncDescription: 'Find friends who are already using CamChat by syncing your contacts.',
+      allowAccess: 'Allow Access',
+      permissionRequired: 'Permission to access contacts is required.',
+      noContacts: 'No contacts found',
+      noResults: 'No results found',
+      tryDifferentSearch: 'Try a different search term',
+      inviteFriends: 'Invite friends to join CamChat',
+      refresh: 'Refresh',
     },
 
     // Time
@@ -243,6 +260,9 @@ const translations = {
       online: 'En ligne',
       lastSeen: 'Vu',
       typing: 'écrit...',
+      createError: 'Échec du démarrage de la discussion. Veuillez réessayer.',
+      archive: 'Archiver',
+      mute: 'Mettre en sourdine',
     },
 
     // Status
@@ -306,6 +326,20 @@ const translations = {
       participants: 'participants',
       leaveGroup: 'Quitter le groupe',
       admin: 'Admin',
+    },
+
+    // Contacts
+    contacts: {
+      onCamChat: 'Contacts sur CamChat',
+      syncContacts: 'Synchroniser vos contacts',
+      syncDescription: 'Trouvez des amis qui utilisent déjà CamChat en synchronisant vos contacts.',
+      allowAccess: 'Autoriser l\'accès',
+      permissionRequired: 'Permission d\'accès aux contacts requise.',
+      noContacts: 'Aucun contact trouvé',
+      noResults: 'Aucun résultat trouvé',
+      tryDifferentSearch: 'Essayez un autre terme de recherche',
+      inviteFriends: 'Invitez des amis à rejoindre CamChat',
+      refresh: 'Actualiser',
     },
 
     // Time

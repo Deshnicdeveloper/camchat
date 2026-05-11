@@ -4,7 +4,7 @@
  */
 
 import { supabase, STORAGE_BUCKETS, StorageBucket } from './supabase';
-import * as FileSystem from 'expo-file-system';
+import { readAsStringAsync, EncodingType } from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 
 interface UploadResult {
@@ -30,8 +30,8 @@ export async function uploadFileFromUri(
     console.log(`📤 Uploading file to ${bucket}/${path}`);
 
     // Read the file as base64
-    const base64 = await FileSystem.readAsStringAsync(fileUri, {
-      encoding: FileSystem.EncodingType.Base64,
+    const base64 = await readAsStringAsync(fileUri, {
+      encoding: EncodingType.Base64,
     });
 
     // Convert base64 to ArrayBuffer
