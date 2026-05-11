@@ -23,6 +23,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Location from 'expo-location';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import { Colors, Typography, Spacing, Radius } from '../../../constants';
 import { t } from '../../../lib/i18n';
 import { formatLastSeen } from '../../../utils/formatters';
@@ -32,6 +33,7 @@ import { TypingIndicator } from '../../../components/chat/TypingIndicator';
 import { MessageActionsSheet } from '../../../components/chat/MessageActionsSheet';
 import { AttachmentPicker } from '../../../components/chat/AttachmentPicker';
 import { ImageViewer } from '../../../components/ui/ImageViewer';
+import { VideoViewer } from '../../../components/ui/VideoViewer';
 import { useMessages } from '../../../hooks/useMessages';
 import { useChat } from '../../../hooks/useChat';
 import { useVoicePlayback } from '../../../hooks/useVoicePlayback';
@@ -80,6 +82,7 @@ export default function ChatDetailScreen() {
   const [showActionsSheet, setShowActionsSheet] = useState(false);
   const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
   const [imageViewerUrl, setImageViewerUrl] = useState<string | null>(null);
+  const [videoViewerUrl, setVideoViewerUrl] = useState<string | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -313,6 +316,11 @@ export default function ChatDetailScreen() {
     setImageViewerUrl(imageUrl);
   }, []);
 
+  // Handle video press
+  const handleVideoPress = useCallback((videoUrl: string) => {
+    setVideoViewerUrl(videoUrl);
+  }, []);
+
   // Handle reply action
   const handleReply = useCallback(() => {
     if (selectedMessage) {
@@ -392,6 +400,20 @@ export default function ChatDetailScreen() {
     }, 100);
   }, []);
 
+  // Generate video thumbnail
+  const generateVideoThumbnail = useCallback(async (videoUri: string): Promise<string | undefined> => {
+    try {
+      const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, {
+        time: 1000, // 1 second into the video
+      });
+      console.log('🎬 Generated video thumbnail:', uri);
+      return uri;
+    } catch (error) {
+      console.warn('Failed to generate video thumbnail:', error);
+      return undefined;
+    }
+  }, []);
+
   // Handle camera capture
   const handleCamera = useCallback(async () => {
     if (!chatId || !user?.uid) return;
@@ -419,10 +441,16 @@ export default function ChatDetailScreen() {
       const isVideo = asset.type === 'video';
       const mediaType = isVideo ? 'video' : 'image';
 
+      // Generate thumbnail for video
+      let thumbnailUri: string | undefined;
+      if (isVideo) {
+        thumbnailUri = await generateVideoThumbnail(asset.uri);
+      }
+
       // Add pending message for optimistic UI
       pendingId = addPending({
         type: mediaType,
-        localUri: asset.uri,
+        localUri: isVideo && thumbnailUri ? thumbnailUri : asset.uri,
       });
 
       console.log(`📸 Uploading ${mediaType} from camera...`);
@@ -444,7 +472,15 @@ export default function ChatDetailScreen() {
       markAsSending(pendingId);
 
       if (isVideo) {
-        await sendVideo(uploadResult.url, asset.uri);
+        // Upload thumbnail and send video with thumbnail URL
+        let thumbnailUrl: string | undefined;
+        if (thumbnailUri) {
+          const thumbResult = await uploadChatMediaFromUri(chatId, user.uid, thumbnailUri, 'image');
+          if (thumbResult.success && thumbResult.url) {
+            thumbnailUrl = thumbResult.url;
+          }
+        }
+        await sendVideo(uploadResult.url, thumbnailUrl);
       } else {
         await sendImage(uploadResult.url);
       }
@@ -460,7 +496,7 @@ export default function ChatDetailScreen() {
         markAsFailed(pendingId, errorMessage);
       }
     }
-  }, [chatId, user?.uid, sendImage, sendVideo, scrollToBottom, addPending, updateProgress, markAsSending, markAsFailed, removePending]);
+  }, [chatId, user?.uid, sendImage, sendVideo, scrollToBottom, addPending, updateProgress, markAsSending, markAsFailed, removePending, generateVideoThumbnail]);
 
   // Handle gallery picker
   const handleGallery = useCallback(async () => {
@@ -490,10 +526,16 @@ export default function ChatDetailScreen() {
       const isVideo = asset.type === 'video';
       const mediaType = isVideo ? 'video' : 'image';
 
+      // Generate thumbnail for video
+      let thumbnailUri: string | undefined;
+      if (isVideo) {
+        thumbnailUri = await generateVideoThumbnail(asset.uri);
+      }
+
       // Add pending message for optimistic UI
       pendingId = addPending({
         type: mediaType,
-        localUri: asset.uri,
+        localUri: isVideo && thumbnailUri ? thumbnailUri : asset.uri,
       });
 
       console.log(`🖼️ Uploading ${mediaType} from gallery...`);
@@ -515,7 +557,15 @@ export default function ChatDetailScreen() {
       markAsSending(pendingId);
 
       if (isVideo) {
-        await sendVideo(uploadResult.url, asset.uri);
+        // Upload thumbnail and send video with thumbnail URL
+        let thumbnailUrl: string | undefined;
+        if (thumbnailUri) {
+          const thumbResult = await uploadChatMediaFromUri(chatId, user.uid, thumbnailUri, 'image');
+          if (thumbResult.success && thumbResult.url) {
+            thumbnailUrl = thumbResult.url;
+          }
+        }
+        await sendVideo(uploadResult.url, thumbnailUrl);
       } else {
         await sendImage(uploadResult.url);
       }
@@ -531,7 +581,7 @@ export default function ChatDetailScreen() {
         markAsFailed(pendingId, errorMessage);
       }
     }
-  }, [chatId, user?.uid, sendImage, sendVideo, scrollToBottom, addPending, updateProgress, markAsSending, markAsFailed, removePending]);
+  }, [chatId, user?.uid, sendImage, sendVideo, scrollToBottom, addPending, updateProgress, markAsSending, markAsFailed, removePending, generateVideoThumbnail]);
 
   // Handle document picker
   const handleDocument = useCallback(async () => {
@@ -656,43 +706,28 @@ export default function ChatDetailScreen() {
 
   // Handle attachment selection
   const handleAttachment = useCallback(
-    async (type: 'camera' | 'gallery' | 'document' | 'location') => {
-      // For location, we need to handle permission first before closing picker
-      // to avoid the picker dismissal interfering with permission dialog
-      if (type === 'location') {
-        // Check permission status first
-        const { status } = await Location.getForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          // Request permission while picker is still visible
-          // This prevents the auto-dismiss from interfering
-          const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
-          if (newStatus !== 'granted') {
-            setShowAttachmentPicker(false);
-            Alert.alert(t('common.error'), t('attachments.locationPermission'));
-            return;
-          }
-        }
-      }
-
+    (type: 'camera' | 'gallery' | 'document' | 'location') => {
+      // Close the picker first
       setShowAttachmentPicker(false);
 
-      // Small delay to allow picker animation to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      switch (type) {
-        case 'camera':
-          await handleCamera();
-          break;
-        case 'gallery':
-          await handleGallery();
-          break;
-        case 'document':
-          await handleDocument();
-          break;
-        case 'location':
-          await handleLocation();
-          break;
-      }
+      // Use setTimeout to ensure picker animation completes before launching native pickers
+      // This prevents the race condition between modal close and picker open
+      setTimeout(async () => {
+        switch (type) {
+          case 'camera':
+            await handleCamera();
+            break;
+          case 'gallery':
+            await handleGallery();
+            break;
+          case 'document':
+            await handleDocument();
+            break;
+          case 'location':
+            await handleLocation();
+            break;
+        }
+      }, 300); // 300ms gives enough time for modal to fully close
     },
     [handleCamera, handleGallery, handleDocument, handleLocation]
   );
@@ -889,6 +924,18 @@ export default function ChatDetailScreen() {
         ? voiceCache.getProgress(message.mediaUrl!)
         : 0;
 
+      // Determine the media press handler based on type
+      const getMediaPressHandler = () => {
+        if (!message.mediaUrl) return undefined;
+        if (message.type === 'image') {
+          return () => handleImagePress(message.mediaUrl!);
+        }
+        if (message.type === 'video') {
+          return () => handleVideoPress(message.mediaUrl!);
+        }
+        return undefined;
+      };
+
       return (
         <MessageBubble
           message={message}
@@ -897,11 +944,7 @@ export default function ChatDetailScreen() {
           senderName={showSenderInfo ? getParticipantName(message.senderId) : undefined}
           senderAvatar={showSenderInfo ? getParticipantAvatar(message.senderId) : undefined}
           onLongPress={() => handleMessageLongPress(message)}
-          onImagePress={
-            (message.type === 'image' || message.type === 'video') && message.mediaUrl
-              ? () => handleImagePress(message.mediaUrl!)
-              : undefined
-          }
+          onImagePress={getMediaPressHandler()}
           // Voice note playback props
           isPlayingVoiceNote={isThisMessagePlaying && isPlayingVoice}
           voiceNotePosition={isThisMessagePlaying ? voicePosition : 0}
@@ -922,6 +965,7 @@ export default function ChatDetailScreen() {
       chat?.type,
       handleMessageLongPress,
       handleImagePress,
+      handleVideoPress,
       playingMessageId,
       isPlayingVoice,
       voicePosition,
@@ -1142,6 +1186,14 @@ export default function ChatDetailScreen() {
         <ImageViewer
           imageUrl={imageViewerUrl}
           onClose={() => setImageViewerUrl(null)}
+        />
+      )}
+
+      {/* Video Viewer */}
+      {videoViewerUrl && (
+        <VideoViewer
+          videoUrl={videoViewerUrl}
+          onClose={() => setVideoViewerUrl(null)}
         />
       )}
     </SafeAreaView>
