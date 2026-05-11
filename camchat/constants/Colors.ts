@@ -31,6 +31,13 @@ export const Colors = {
   success: '#22C55E',           // Online indicator, delivered ticks
   warning: '#F59E0B',
   error: '#EF4444',
+  info: '#3B82F6',              // Info blue
+
+  // Accent colors
+  accent: '#10B981',            // Teal/green accent for typing indicator
+
+  // Message received bubble
+  messageReceived: '#F0F2FF',   // Very light blue (same as bubble_received)
 
   // UI element colors
   divider: '#E5E7EB',

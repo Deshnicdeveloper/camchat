@@ -22,6 +22,7 @@ interface MessageInputProps {
   onCameraPress?: () => void;
   onVoiceStart?: () => void;
   onVoiceEnd?: () => void;
+  onTextChange?: (text: string) => void;
   replyingTo?: {
     name: string;
     text: string;
@@ -36,6 +37,7 @@ export default function MessageInput({
   onCameraPress,
   onVoiceStart,
   onVoiceEnd,
+  onTextChange,
   replyingTo,
   onCancelReply,
   disabled = false,
@@ -46,13 +48,22 @@ export default function MessageInput({
 
   const hasText = message.trim().length > 0;
 
+  const handleTextChange = useCallback(
+    (text: string) => {
+      setMessage(text);
+      onTextChange?.(text);
+    },
+    [onTextChange]
+  );
+
   const handleSend = useCallback(() => {
     if (hasText && !disabled) {
       onSendMessage(message.trim());
       setMessage('');
       setInputHeight(40);
+      onTextChange?.('');
     }
-  }, [message, hasText, disabled, onSendMessage]);
+  }, [message, hasText, disabled, onSendMessage, onTextChange]);
 
   const handleContentSizeChange = useCallback(
     (event: { nativeEvent: { contentSize: { height: number } } }) => {
@@ -111,7 +122,7 @@ export default function MessageInput({
             placeholder={t('chats.typeMessage')}
             placeholderTextColor={Colors.textSecondary}
             value={message}
-            onChangeText={setMessage}
+            onChangeText={handleTextChange}
             multiline
             maxLength={4096}
             onContentSizeChange={handleContentSizeChange}
