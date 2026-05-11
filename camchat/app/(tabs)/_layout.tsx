@@ -18,31 +18,6 @@ interface TabBarIconProps {
 }
 
 export default function TabLayout() {
-  const getTabBarIcon = (routeName: string) => {
-    return ({ focused, color, size }: TabBarIconProps) => {
-      let iconName: IoniconsName;
-
-      switch (routeName) {
-        case 'chats':
-          iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-          break;
-        case 'status':
-          iconName = focused ? 'radio' : 'radio-outline';
-          break;
-        case 'calls':
-          iconName = focused ? 'call' : 'call-outline';
-          break;
-        case 'settings':
-          iconName = focused ? 'settings' : 'settings-outline';
-          break;
-        default:
-          iconName = 'help-outline';
-      }
-
-      return <Ionicons name={iconName} size={size} color={color} />;
-    };
-  };
-
   return (
     <Tabs
       screenOptions={{
@@ -54,38 +29,59 @@ export default function TabLayout() {
         headerTintColor: Colors.textInverse,
         headerTitleStyle: styles.headerTitle,
         headerShadowVisible: false,
+        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="chats"
         options={{
           title: t('tabs.chats'),
-          tabBarIcon: getTabBarIcon('chats'),
-          headerShown: false,
+          tabBarIcon: ({ focused, color, size }: TabBarIconProps) => (
+            <Ionicons
+              name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
+              size={size}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="status"
         options={{
           title: t('tabs.status'),
-          tabBarIcon: getTabBarIcon('status'),
-          headerShown: false,
+          tabBarIcon: ({ focused, color, size }: TabBarIconProps) => (
+            <Ionicons
+              name={focused ? 'radio' : 'radio-outline'}
+              size={size}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="calls"
         options={{
           title: t('tabs.calls'),
-          tabBarIcon: getTabBarIcon('calls'),
-          headerShown: false,
+          tabBarIcon: ({ focused, color, size }: TabBarIconProps) => (
+            <Ionicons
+              name={focused ? 'call' : 'call-outline'}
+              size={size}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: t('tabs.settings'),
-          tabBarIcon: getTabBarIcon('settings'),
-          headerShown: false,
+          tabBarIcon: ({ focused, color, size }: TabBarIconProps) => (
+            <Ionicons
+              name={focused ? 'settings' : 'settings-outline'}
+              size={size}
+              color={color}
+            />
+          ),
         }}
       />
     </Tabs>
