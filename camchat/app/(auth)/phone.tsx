@@ -4,7 +4,17 @@
  * Cameroon phone numbers: 9 digits, starting with 6 or 2
  */
 
-import { View, Text, StyleSheet, TextInput, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -60,55 +70,65 @@ export default function PhoneScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
-        </Pressable>
-      </View>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.inner}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Pressable onPress={() => router.back()} style={styles.backButton}>
+                <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+              </Pressable>
+            </View>
 
-      {/* Content */}
-      <View style={styles.content}>
-        <Text style={styles.title}>{t('auth.phoneTitle')}</Text>
-        <Text style={styles.subtitle}>{t('auth.phoneSubtitle')}</Text>
+            {/* Content */}
+            <View style={styles.content}>
+              <Text style={styles.title}>{t('auth.phoneTitle')}</Text>
+              <Text style={styles.subtitle}>{t('auth.phoneSubtitle')}</Text>
 
-        {/* Phone Input Card */}
-        <View style={styles.card}>
-          <View style={styles.inputRow}>
-            {/* Country Code */}
-            <Pressable style={styles.countryCode}>
-              <Text style={styles.flag}>🇨🇲</Text>
-              <Text style={styles.codeText}>{countryCode}</Text>
-              <Ionicons name="chevron-down" size={16} color={Colors.textSecondary} />
-            </Pressable>
+              {/* Phone Input Card */}
+              <View style={styles.card}>
+                <View style={styles.inputRow}>
+                  {/* Country Code */}
+                  <Pressable style={styles.countryCode}>
+                    <Text style={styles.flag}>🇨🇲</Text>
+                    <Text style={styles.codeText}>{countryCode}</Text>
+                    <Ionicons name="chevron-down" size={16} color={Colors.textSecondary} />
+                  </Pressable>
 
-            {/* Phone Number Input */}
-            <TextInput
-              style={styles.phoneInput}
-              placeholder="6XX XXX XXX"
-              placeholderTextColor={Colors.textSecondary}
-              keyboardType="phone-pad"
-              value={phoneNumber}
-              onChangeText={handlePhoneChange}
-              maxLength={11}
-              autoFocus
-            />
+                  {/* Phone Number Input */}
+                  <TextInput
+                    style={styles.phoneInput}
+                    placeholder="6XX XXX XXX"
+                    placeholderTextColor={Colors.textSecondary}
+                    keyboardType="phone-pad"
+                    value={phoneNumber}
+                    onChangeText={handlePhoneChange}
+                    maxLength={11}
+                    autoFocus
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* Continue Button */}
+            <View style={styles.footer}>
+              <Pressable
+                style={[styles.button, !isValidPhone && styles.buttonDisabled]}
+                onPress={handleContinue}
+                disabled={!isValidPhone}
+              >
+                <Text style={[styles.buttonText, !isValidPhone && styles.buttonTextDisabled]}>
+                  {t('auth.continue')}
+                </Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
-      </View>
-
-      {/* Continue Button */}
-      <View style={styles.footer}>
-        <Pressable
-          style={[styles.button, !isValidPhone && styles.buttonDisabled]}
-          onPress={handleContinue}
-          disabled={!isValidPhone}
-        >
-          <Text style={[styles.buttonText, !isValidPhone && styles.buttonTextDisabled]}>
-            {t('auth.continue')}
-          </Text>
-        </Pressable>
-      </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -117,6 +137,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.primary,
+  },
+  keyboardAvoid: {
+    flex: 1,
+  },
+  inner: {
+    flex: 1,
   },
   header: {
     paddingHorizontal: Spacing.md,
