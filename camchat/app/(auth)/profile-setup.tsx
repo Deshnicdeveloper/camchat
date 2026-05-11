@@ -3,7 +3,18 @@
  * User sets their display name and avatar
  */
 
-import { View, Text, StyleSheet, TextInput, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -11,9 +22,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, Radius } from '../../constants';
 import { t } from '../../lib/i18n';
 
+// Default about text with lion emoji (Cameroonian cultural identity)
+const DEFAULT_ABOUT = "Hey, I'm on CamChat 🦁";
+
 export default function ProfileSetupScreen() {
   const [displayName, setDisplayName] = useState('');
-  const [about, setAbout] = useState(t('auth.defaultAbout'));
+  const [about, setAbout] = useState(DEFAULT_ABOUT);
 
   const handleDone = () => {
     if (displayName.trim().length > 0) {
@@ -26,73 +40,87 @@ export default function ProfileSetupScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
-        </Pressable>
-      </View>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.inner}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Pressable onPress={() => router.back()} style={styles.backButton}>
+                <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+              </Pressable>
+            </View>
 
-      {/* Content */}
-      <View style={styles.content}>
-        <Text style={styles.title}>{t('auth.profileTitle')}</Text>
-        <Text style={styles.subtitle}>{t('auth.profileSubtitle')}</Text>
+            {/* Content */}
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.content}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={styles.title}>{t('auth.profileTitle')}</Text>
+              <Text style={styles.subtitle}>{t('auth.profileSubtitle')}</Text>
 
-        {/* Avatar Picker */}
-        <Pressable style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={48} color={Colors.textSecondary} />
+              {/* Avatar Picker */}
+              <Pressable style={styles.avatarContainer}>
+                <View style={styles.avatar}>
+                  <Ionicons name="person" size={48} color={Colors.textSecondary} />
+                </View>
+                <View style={styles.cameraIcon}>
+                  <Ionicons name="camera" size={18} color={Colors.textInverse} />
+                </View>
+              </Pressable>
+
+              {/* Input Card */}
+              <View style={styles.card}>
+                {/* Display Name Input */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>{t('auth.displayName')}</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your name"
+                    placeholderTextColor={Colors.textSecondary}
+                    value={displayName}
+                    onChangeText={setDisplayName}
+                    maxLength={25}
+                    autoFocus
+                  />
+                </View>
+
+                <View style={styles.divider} />
+
+                {/* About Input */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>{t('auth.about')}</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="About"
+                    placeholderTextColor={Colors.textSecondary}
+                    value={about}
+                    onChangeText={setAbout}
+                    maxLength={139}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            {/* Done Button */}
+            <View style={styles.footer}>
+              <Pressable
+                style={[styles.button, !isValid && styles.buttonDisabled]}
+                onPress={handleDone}
+                disabled={!isValid}
+              >
+                <Text style={[styles.buttonText, !isValid && styles.buttonTextDisabled]}>
+                  {t('common.done')}
+                </Text>
+              </Pressable>
+            </View>
           </View>
-          <View style={styles.cameraIcon}>
-            <Ionicons name="camera" size={18} color={Colors.textInverse} />
-          </View>
-        </Pressable>
-
-        {/* Input Card */}
-        <View style={styles.card}>
-          {/* Display Name Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t('auth.displayName')}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your name"
-              placeholderTextColor={Colors.textSecondary}
-              value={displayName}
-              onChangeText={setDisplayName}
-              maxLength={25}
-              autoFocus
-            />
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* About Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t('auth.about')}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="About"
-              placeholderTextColor={Colors.textSecondary}
-              value={about}
-              onChangeText={setAbout}
-              maxLength={139}
-            />
-          </View>
-        </View>
-      </View>
-
-      {/* Done Button */}
-      <View style={styles.footer}>
-        <Pressable
-          style={[styles.button, !isValid && styles.buttonDisabled]}
-          onPress={handleDone}
-          disabled={!isValid}
-        >
-          <Text style={[styles.buttonText, !isValid && styles.buttonTextDisabled]}>
-            {t('common.done')}
-          </Text>
-        </Pressable>
-      </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -101,6 +129,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.primary,
+  },
+  keyboardAvoid: {
+    flex: 1,
+  },
+  inner: {
+    flex: 1,
   },
   header: {
     paddingHorizontal: Spacing.md,
@@ -112,11 +146,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  content: {
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
     alignItems: 'center',
+    paddingBottom: Spacing.xl,
   },
   title: {
     fontFamily: Typography.fontFamily.bold,
