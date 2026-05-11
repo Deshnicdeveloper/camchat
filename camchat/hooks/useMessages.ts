@@ -46,6 +46,7 @@ interface UseMessagesReturn {
   }) => Promise<boolean>;
   sendText: (text: string, replyTo?: ReplyReference) => Promise<boolean>;
   sendImage: (mediaUrl: string, caption?: string) => Promise<boolean>;
+  sendVideo: (mediaUrl: string, thumbnailUrl?: string) => Promise<boolean>;
   sendVoice: (mediaUrl: string, duration: number) => Promise<boolean>;
   sendDocument: (mediaUrl: string, fileName: string, fileSize: number) => Promise<boolean>;
   sendLocation: (location: LocationData) => Promise<boolean>;
@@ -234,6 +235,16 @@ export function useMessages({ chatId, participants }: UseMessagesParams): UseMes
   );
 
   /**
+   * Send a video message
+   */
+  const sendVideo = useCallback(
+    async (mediaUrl: string, thumbnailUrl?: string): Promise<boolean> => {
+      return send({ type: 'video', mediaUrl, mediaThumbnail: thumbnailUrl });
+    },
+    [send]
+  );
+
+  /**
    * Send a voice message
    */
   const sendVoice = useCallback(
@@ -352,6 +363,7 @@ export function useMessages({ chatId, participants }: UseMessagesParams): UseMes
     send,
     sendText,
     sendImage,
+    sendVideo,
     sendVoice,
     sendDocument,
     sendLocation,

@@ -189,6 +189,12 @@ const translations = {
       gallery: 'Gallery',
       document: 'Document',
       location: 'Location',
+      uploading: 'Uploading...',
+      sendFailed: 'Failed to send. Please try again.',
+      cameraPermission: 'Camera permission is required.',
+      galleryPermission: 'Media library permission is required.',
+      locationPermission: 'Location permission is required.',
+      locationFailed: 'Failed to get location. Please try again.',
     },
 
     // Images
@@ -401,6 +407,12 @@ const translations = {
       gallery: 'Galerie',
       document: 'Document',
       location: 'Position',
+      uploading: 'Envoi en cours...',
+      sendFailed: 'Échec de l\'envoi. Veuillez réessayer.',
+      cameraPermission: 'L\'autorisation de la caméra est requise.',
+      galleryPermission: 'L\'autorisation de la médiathèque est requise.',
+      locationPermission: 'L\'autorisation de localisation est requise.',
+      locationFailed: 'Impossible d\'obtenir la localisation. Veuillez réessayer.',
     },
 
     // Images
