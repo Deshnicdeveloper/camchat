@@ -5,7 +5,6 @@
 
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
@@ -44,7 +43,6 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.container}>
-        <StatusBar style="light" />
         <Stack
           screenOptions={{
             headerShown: false,
