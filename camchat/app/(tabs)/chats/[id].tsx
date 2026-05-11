@@ -797,16 +797,48 @@ export default function ChatDetailScreen() {
   }, [showAttachmentPicker, executePendingAttachment]);
 
   // Handle voice call
-  const handleVoiceCall = useCallback(() => {
-    // TODO: Implement voice call
-    Alert.alert('Coming Soon', 'Voice calls will be available in a future update.');
-  }, []);
+  const handleVoiceCall = useCallback(async () => {
+    if (!user?.uid || !participant?.uid) return;
+
+    try {
+      const { createCall } = await import('../../../lib/calls');
+      const result = await createCall(user.uid, participant.uid, 'voice');
+
+      if (result.success && result.call) {
+        router.push({
+          pathname: '/call/[callId]',
+          params: { callId: result.call.id, isIncoming: 'false' },
+        });
+      } else {
+        Alert.alert(t('common.error'), result.error || 'Failed to start call');
+      }
+    } catch (error) {
+      console.error('Error starting voice call:', error);
+      Alert.alert(t('common.error'), 'Failed to start call');
+    }
+  }, [user?.uid, participant?.uid]);
 
   // Handle video call
-  const handleVideoCall = useCallback(() => {
-    // TODO: Implement video call
-    Alert.alert('Coming Soon', 'Video calls will be available in a future update.');
-  }, []);
+  const handleVideoCall = useCallback(async () => {
+    if (!user?.uid || !participant?.uid) return;
+
+    try {
+      const { createCall } = await import('../../../lib/calls');
+      const result = await createCall(user.uid, participant.uid, 'video');
+
+      if (result.success && result.call) {
+        router.push({
+          pathname: '/call/[callId]',
+          params: { callId: result.call.id, isIncoming: 'false' },
+        });
+      } else {
+        Alert.alert(t('common.error'), result.error || 'Failed to start call');
+      }
+    } catch (error) {
+      console.error('Error starting video call:', error);
+      Alert.alert(t('common.error'), 'Failed to start call');
+    }
+  }, [user?.uid, participant?.uid]);
 
   // Handle text change for typing indicator
   const handleTextChange = useCallback(
