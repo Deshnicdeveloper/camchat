@@ -27,6 +27,14 @@ function getDateLocale() {
  * Format a timestamp for chat list display
  * Shows: time if today, day name if this week, date otherwise
  */
+export function formatChatTime(date: Date): string {
+  return formatChatTimestamp(date);
+}
+
+/**
+ * Format a timestamp for chat list display
+ * Shows: time if today, day name if this week, date otherwise
+ */
 export function formatChatTimestamp(date: Date): string {
   const locale = getDateLocale();
 
