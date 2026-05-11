@@ -17,6 +17,7 @@ interface MessageBubbleProps {
   isSent: boolean;
   isGroupChat?: boolean;
   senderName?: string;
+  senderAvatar?: string;
   onLongPress?: () => void;
   onImagePress?: () => void;
   // Voice note playback props
@@ -51,6 +52,7 @@ function MessageBubble({
   isSent,
   isGroupChat = false,
   senderName,
+  senderAvatar,
   onLongPress,
   onImagePress,
   isPlayingVoiceNote = false,

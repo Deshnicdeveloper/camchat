@@ -58,6 +58,7 @@ export interface Chat {
   groupName?: string;
   groupAvatarUrl?: string;
   groupDescription?: string;
+  admins?: string[]; // Array of user IDs who are group admins
 }
 
 export interface LastMessage {

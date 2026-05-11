@@ -1,6 +1,7 @@
 /**
  * Chat Detail Screen
- * Full 1-on-1 chat room with messages, input, and real-time updates
+ * Full chat room with messages, input, and real-time updates
+ * Supports both 1-on-1 and group chats
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -57,6 +58,7 @@ export default function ChatDetailScreen() {
   // Chat state
   const [chat, setChat] = useState<Chat | null>(null);
   const [participant, setParticipant] = useState<UserProfile | null>(null);
+  const [participants, setParticipants] = useState<Map<string, UserProfile>>(new Map());
   const [isLoadingChat, setIsLoadingChat] = useState(true);
 
   // UI state
@@ -94,21 +96,31 @@ export default function ChatDetailScreen() {
       if (result.success && result.chat) {
         setChat(result.chat);
 
-        // Get the other participant
-        const otherParticipantId = result.chat.participants.find(
+        // Get participants (excluding current user)
+        const participantIds = result.chat.participants.filter(
           (p) => p !== user?.uid
         );
-        if (otherParticipantId) {
-          // First try to get from cache
-          let participantData = getParticipant(otherParticipantId);
 
-          // If not in cache, fetch from Firestore
-          if (!participantData) {
-            console.log('📡 Fetching participant data from Firestore:', otherParticipantId);
-            const users = await getUsersByIds([otherParticipantId]);
-            if (users.length > 0) {
-              const u = users[0];
-              participantData = {
+        if (participantIds.length > 0) {
+          // First try to get from cache, then fetch missing from Firestore
+          const participantMap = new Map<string, UserProfile>();
+          const missingIds: string[] = [];
+
+          for (const id of participantIds) {
+            const cached = getParticipant(id);
+            if (cached) {
+              participantMap.set(id, cached);
+            } else {
+              missingIds.push(id);
+            }
+          }
+
+          // Fetch missing participants from Firestore
+          if (missingIds.length > 0) {
+            console.log('📡 Fetching participant data from Firestore:', missingIds);
+            const users = await getUsersByIds(missingIds);
+            for (const u of users) {
+              const profile: UserProfile = {
                 uid: u.uid,
                 displayName: u.displayName,
                 avatarUrl: u.avatarUrl,
@@ -116,9 +128,16 @@ export default function ChatDetailScreen() {
                 isOnline: u.isOnline,
                 lastSeen: u.lastSeen,
               };
+              participantMap.set(u.uid, profile);
             }
           }
-          setParticipant(participantData || null);
+
+          setParticipants(participantMap);
+
+          // For direct chats, also set the single participant
+          if (result.chat.type === 'direct' && participantIds.length === 1) {
+            setParticipant(participantMap.get(participantIds[0]) || null);
+          }
         }
       }
       setIsLoadingChat(false);
@@ -170,7 +189,7 @@ export default function ChatDetailScreen() {
     return items;
   }, [messages]);
 
-  // Get participant name
+  // Get participant name for header
   const participantName = useMemo(() => {
     if (chat?.type === 'group') {
       return chat.groupName || 'Group';
@@ -178,8 +197,34 @@ export default function ChatDetailScreen() {
     return participant?.displayName || 'Chat';
   }, [chat, participant]);
 
+  // Get participant name by ID (for group messages)
+  const getParticipantName = useCallback(
+    (senderId: string): string => {
+      if (senderId === user?.uid) return t('common.you');
+      const p = participants.get(senderId);
+      return p?.displayName || 'Unknown';
+    },
+    [participants, user?.uid]
+  );
+
+  // Get participant avatar by ID (for group messages)
+  const getParticipantAvatar = useCallback(
+    (senderId: string): string | undefined => {
+      return participants.get(senderId)?.avatarUrl;
+    },
+    [participants]
+  );
+
   // Get online status text
   const statusText = useMemo(() => {
+    if (chat?.type === 'group') {
+      if (typingUsers.length > 0) {
+        const typingName = getParticipantName(typingUsers[0]);
+        return `${typingName} ${t('chats.typing').toLowerCase()}`;
+      }
+      return `${chat.participants.length} ${t('groups.participants').toLowerCase()}`;
+    }
+
     if (typingUsers.length > 0) {
       return t('chats.typing');
     }
@@ -190,7 +235,7 @@ export default function ChatDetailScreen() {
       return formatLastSeen(participant.lastSeen);
     }
     return '';
-  }, [typingUsers, participant]);
+  }, [chat, typingUsers, participant, getParticipantName]);
 
   // Handle send message
   const handleSendMessage = useCallback(
@@ -375,11 +420,16 @@ export default function ChatDetailScreen() {
       const message = item.data;
       const isSent = message.senderId === user?.uid;
       const isThisMessagePlaying = playingMessageId === message.id;
+      const isGroupChat = chat?.type === 'group';
+      const showSenderInfo = isGroupChat && !isSent;
 
       return (
         <MessageBubble
           message={message}
           isSent={isSent}
+          isGroupChat={isGroupChat}
+          senderName={showSenderInfo ? getParticipantName(message.senderId) : undefined}
+          senderAvatar={showSenderInfo ? getParticipantAvatar(message.senderId) : undefined}
           onLongPress={() => handleMessageLongPress(message)}
           onImagePress={
             message.type === 'image' && message.mediaUrl
@@ -396,7 +446,7 @@ export default function ChatDetailScreen() {
         />
       );
     },
-    [user?.uid, handleMessageLongPress, handleImagePress, playingMessageId, isPlayingVoice, voicePosition, playbackSpeed, handleVoiceNotePlay, pauseVoiceNote, toggleVoiceSpeed]
+    [user?.uid, chat?.type, handleMessageLongPress, handleImagePress, playingMessageId, isPlayingVoice, voicePosition, playbackSpeed, handleVoiceNotePlay, pauseVoiceNote, toggleVoiceSpeed, getParticipantName, getParticipantAvatar]
   );
 
   // Key extractor
@@ -423,9 +473,30 @@ export default function ChatDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
         </Pressable>
 
-        <Pressable style={styles.headerInfo} onPress={() => {}}>
+        <Pressable
+          style={styles.headerInfo}
+          onPress={() => {
+            if (chat?.type === 'group' && chatId) {
+              router.push(`/group/${chatId}`);
+            } else if (participant) {
+              router.push(`/profile/${participant.uid}`);
+            }
+          }}
+        >
           <View style={styles.avatarContainer}>
-            {participant?.avatarUrl ? (
+            {chat?.type === 'group' ? (
+              chat.groupAvatarUrl ? (
+                <Image
+                  source={{ uri: chat.groupAvatarUrl }}
+                  style={styles.avatar}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Ionicons name="people" size={20} color={Colors.textSecondary} />
+                </View>
+              )
+            ) : participant?.avatarUrl ? (
               <Image
                 source={{ uri: participant.avatarUrl }}
                 style={styles.avatar}
@@ -436,7 +507,9 @@ export default function ChatDetailScreen() {
                 <Ionicons name="person" size={20} color={Colors.textSecondary} />
               </View>
             )}
-            {participant?.isOnline && <View style={styles.onlineIndicator} />}
+            {chat?.type === 'direct' && participant?.isOnline && (
+              <View style={styles.onlineIndicator} />
+            )}
           </View>
 
           <View style={styles.headerTextContainer}>
@@ -456,14 +529,29 @@ export default function ChatDetailScreen() {
         </Pressable>
 
         <View style={styles.headerActions}>
-          <Pressable onPress={handleVideoCall} style={styles.headerButton}>
-            <Ionicons name="videocam" size={22} color={Colors.textInverse} />
-          </Pressable>
-          <Pressable onPress={handleVoiceCall} style={styles.headerButton}>
-            <Ionicons name="call" size={22} color={Colors.textInverse} />
-          </Pressable>
-          <Pressable onPress={() => {}} style={styles.headerButton}>
-            <Ionicons name="ellipsis-vertical" size={22} color={Colors.textInverse} />
+          {chat?.type === 'direct' && (
+            <>
+              <Pressable onPress={handleVideoCall} style={styles.headerButton}>
+                <Ionicons name="videocam" size={22} color={Colors.textInverse} />
+              </Pressable>
+              <Pressable onPress={handleVoiceCall} style={styles.headerButton}>
+                <Ionicons name="call" size={22} color={Colors.textInverse} />
+              </Pressable>
+            </>
+          )}
+          <Pressable
+            onPress={() => {
+              if (chat?.type === 'group' && chatId) {
+                router.push(`/group/${chatId}`);
+              }
+            }}
+            style={styles.headerButton}
+          >
+            <Ionicons
+              name={chat?.type === 'group' ? 'information-circle-outline' : 'ellipsis-vertical'}
+              size={22}
+              color={Colors.textInverse}
+            />
           </Pressable>
         </View>
       </View>

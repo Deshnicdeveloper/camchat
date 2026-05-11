@@ -18,6 +18,7 @@ import {
   limit,
   serverTimestamp,
   Timestamp,
+  startAfter,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { COLLECTIONS, getServerTimestamp } from './firestore';
@@ -119,7 +120,20 @@ export async function sendMessage(params: SendMessageParams): Promise<SendMessag
     const docRef = await addDoc(messagesRef, messageData);
 
     // Update chat's lastMessage
-    const lastMessageText = type === 'text' ? (text || '') : type;
+    const lastMessageText = type === 'text'
+      ? (text || '')
+      : type === 'image'
+        ? 'Photo'
+        : type === 'audio'
+        ? 'Voice message'
+        : type === 'video'
+        ? 'Video'
+        : type === 'document'
+        ? 'Document'
+        : type === 'location'
+        ? 'Location'
+        : 'Message';
+
     await updateChatLastMessage(chatId, {
       text: lastMessageText,
       senderId,
@@ -174,6 +188,53 @@ export function subscribeToMessages(
       }
     }
   );
+}
+
+/**
+ * Load more messages (pagination)
+ */
+export async function loadMoreMessages(
+  chatId: string,
+  lastMessageTimestamp: Date,
+  currentUserId: string,
+  pageSize: number = 30
+): Promise<{ messages: Message[]; hasMore: boolean }> {
+  try {
+    const messagesRef = collection(db, COLLECTIONS.CHATS, chatId, 'messages');
+    const q = query(
+      messagesRef,
+      orderBy('timestamp', 'desc'),
+      startAfter(Timestamp.fromDate(lastMessageTimestamp)),
+      limit(pageSize + 1)
+    );
+
+    const snapshot = await getDocs(q);
+    const messages: Message[] = [];
+
+    snapshot.forEach((doc) => {
+      const message = firestoreToMessage(doc.id, doc.data());
+      // Filter out messages deleted for this user
+      if (!message.deletedFor.includes(currentUserId)) {
+        messages.push(message);
+      }
+    });
+
+    const hasMore = messages.length > pageSize;
+    if (hasMore) {
+      messages.pop(); // Remove the extra item used to check for more
+    }
+
+    return {
+      messages: messages.reverse(),
+      hasMore,
+    };
+  } catch (error) {
+    console.error('Error loading more messages:', error);
+    return {
+      messages: [],
+      hasMore: false,
+    };
+  }
 }
 
 /**
@@ -312,18 +373,12 @@ export async function deleteMessageForUser(
 ): Promise<void> {
   try {
     const messageRef = doc(db, COLLECTIONS.CHATS, chatId, 'messages', messageId);
-    // Get current deletedFor array and add user
-    const messagesRef = collection(db, COLLECTIONS.CHATS, chatId, 'messages');
-    const q = query(messagesRef, where('__name__', '==', messageId));
-    const snapshot = await getDocs(q);
-
-    if (!snapshot.empty) {
-      const currentDeletedFor = snapshot.docs[0].data().deletedFor || [];
-      await updateDoc(messageRef, {
-        deletedFor: [...currentDeletedFor, userId],
-      });
-      console.log('✅ Message deleted for user');
-    }
+    // Use arrayUnion to add userId to deletedFor array
+    const { arrayUnion } = await import('firebase/firestore');
+    await updateDoc(messageRef, {
+      deletedFor: arrayUnion(userId),
+    });
+    console.log('✅ Message deleted for user');
   } catch (error) {
     console.error('Error deleting message:', error);
     throw error;
