@@ -6,7 +6,6 @@
 import { useEffect, useCallback, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import {
-  sendOTP,
   verifyOTP,
   createUserProfile,
   getUserProfile,
@@ -28,7 +27,6 @@ interface UseAuthReturn {
   verificationInProgress: boolean;
 
   // Actions
-  sendVerificationCode: (phone: string) => Promise<{ success: boolean; error?: string }>;
   verifyCode: (code: string) => Promise<{ success: boolean; isNewUser?: boolean; error?: string }>;
   completeProfile: (
     displayName: string,
@@ -94,27 +92,6 @@ export function useAuth(): UseAuthReturn {
       }
     };
   }, []);
-
-  // Send OTP to phone number
-  const sendVerificationCode = useCallback(
-    async (phone: string): Promise<{ success: boolean; error?: string }> => {
-      setLoading(true);
-      setVerificationInProgress(false);
-
-      const formattedPhone = formatPhoneNumber(phone);
-      setPhoneNumber(formattedPhone);
-
-      const result = await sendOTP(phone);
-
-      if (result.success) {
-        setVerificationInProgress(true);
-      }
-
-      setLoading(false);
-      return result;
-    },
-    [setLoading, setPhoneNumber, setVerificationInProgress]
-  );
 
   // Verify OTP code
   const verifyCode = useCallback(
@@ -223,7 +200,6 @@ export function useAuth(): UseAuthReturn {
     isInitialized,
     phoneNumber,
     verificationInProgress,
-    sendVerificationCode,
     verifyCode,
     completeProfile,
     updateProfile,

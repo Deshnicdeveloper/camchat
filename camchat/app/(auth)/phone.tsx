@@ -19,11 +19,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { FirebaseRecaptchaVerifierModal, FirebaseRecaptchaBanner } from 'expo-firebase-recaptcha';
 import { Colors, Typography, Spacing, Radius } from '../../constants';
 import { t } from '../../lib/i18n';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuthStore } from '../../store/authStore';
+import { sendOTP } from '../../lib/auth';
+import { app } from '../../lib/firebase';
 
 /**
  * Format phone number as user types: 6XX XXX XXX
@@ -59,7 +62,10 @@ export default function PhoneScreen() {
   const [countryCode] = useState('+237'); // Cameroon default
   const [isSending, setIsSending] = useState(false);
 
-  const { sendVerificationCode } = useAuth();
+  // Ref for reCAPTCHA verifier
+  const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal>(null);
+
+  const { setPhoneNumber: storePhoneNumber, setVerificationInProgress } = useAuthStore();
 
   const handlePhoneChange = (text: string) => {
     const formatted = formatPhoneNumber(text);
@@ -74,20 +80,35 @@ export default function PhoneScreen() {
     // Format full phone number with country code
     const fullPhoneNumber = countryCode + phoneNumber.replace(/\D/g, '');
 
-    const result = await sendVerificationCode(fullPhoneNumber);
+    try {
+      // Store the phone number in auth store
+      storePhoneNumber(fullPhoneNumber);
 
-    setIsSending(false);
+      // Send OTP with reCAPTCHA verifier
+      const result = await sendOTP(fullPhoneNumber, recaptchaVerifier.current!);
 
-    if (result.success) {
-      // Navigate to OTP screen with phone number
-      router.push({
-        pathname: '/(auth)/otp',
-        params: { phone: fullPhoneNumber }
-      });
-    } else {
+      setIsSending(false);
+
+      if (result.success) {
+        setVerificationInProgress(true);
+        // Navigate to OTP screen with phone number
+        router.push({
+          pathname: '/(auth)/otp',
+          params: { phone: fullPhoneNumber }
+        });
+      } else {
+        Alert.alert(
+          t('common.error'),
+          result.error || t('auth.sendOtpError'),
+          [{ text: t('common.ok') }]
+        );
+      }
+    } catch (error) {
+      setIsSending(false);
+      console.error('Error in handleContinue:', error);
       Alert.alert(
         t('common.error'),
-        result.error || t('auth.sendOtpError'),
+        t('auth.sendOtpError'),
         [{ text: t('common.ok') }]
       );
     }
@@ -97,6 +118,13 @@ export default function PhoneScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Firebase reCAPTCHA Modal */}
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={app.options}
+        attemptInvisibleVerification={true}
+      />
+
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -139,6 +167,9 @@ export default function PhoneScreen() {
                   />
                 </View>
               </View>
+
+              {/* reCAPTCHA Banner (required by Firebase) */}
+              <FirebaseRecaptchaBanner style={styles.recaptchaBanner} />
             </View>
 
             {/* Continue Button */}
@@ -238,6 +269,9 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     paddingLeft: Spacing.md,
     paddingVertical: Spacing.sm,
+  },
+  recaptchaBanner: {
+    marginTop: Spacing.md,
   },
   footer: {
     paddingHorizontal: Spacing.xl,

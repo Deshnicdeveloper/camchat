@@ -45,12 +45,11 @@ export function formatPhoneNumber(phoneNumber: string, countryCode: string = '+2
 
 /**
  * Send OTP to phone number
- * Note: In React Native with Expo, we need to use a different approach
- * For now, this is set up for web. For mobile, you'd use expo-firebase-recaptcha
+ * Uses Firebase Phone Auth with reCAPTCHA verification
  */
 export async function sendOTP(
   phoneNumber: string,
-  recaptchaVerifier?: ApplicationVerifier
+  recaptchaVerifier: ApplicationVerifier
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const formattedPhone = formatPhoneNumber(phoneNumber);
@@ -59,21 +58,40 @@ export async function sendOTP(
     console.log('Sending OTP to:', formattedPhone);
 
     if (!recaptchaVerifier) {
-      // In a real app, you'd need to set up reCAPTCHA
-      // For React Native with Expo, use expo-firebase-recaptcha
-      console.warn('No reCAPTCHA verifier provided. Using test mode if enabled.');
+      return {
+        success: false,
+        error: 'reCAPTCHA verification is required. Please try again.'
+      };
     }
 
     // Send verification code
     confirmationResult = await signInWithPhoneNumber(
       auth,
       formattedPhone,
-      recaptchaVerifier as ApplicationVerifier
+      recaptchaVerifier
     );
 
     return { success: true };
   } catch (error: unknown) {
     console.error('Error sending OTP:', error);
+
+    // Handle specific Firebase errors
+    if (error && typeof error === 'object' && 'code' in error) {
+      const firebaseError = error as { code: string; message: string };
+      switch (firebaseError.code) {
+        case 'auth/invalid-phone-number':
+          return { success: false, error: 'Invalid phone number format.' };
+        case 'auth/too-many-requests':
+          return { success: false, error: 'Too many requests. Please try again later.' };
+        case 'auth/quota-exceeded':
+          return { success: false, error: 'SMS quota exceeded. Please try again later.' };
+        case 'auth/captcha-check-failed':
+          return { success: false, error: 'reCAPTCHA verification failed. Please try again.' };
+        default:
+          return { success: false, error: firebaseError.message || 'Failed to send verification code.' };
+      }
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'Failed to send OTP';
     return { success: false, error: errorMessage };
   }
