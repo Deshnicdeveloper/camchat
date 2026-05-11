@@ -3,13 +3,16 @@
  * User settings and preferences
  */
 
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
+import { router } from 'expo-router';
 import { Colors, Typography, Spacing, Radius } from '../../../constants';
 import { t } from '../../../lib/i18n';
 import QRCodeModal from '../../../components/QRCodeModal';
+import { useAuthStore } from '../../../store/authStore';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface SettingsItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -35,10 +38,36 @@ function SettingsItem({ icon, label, onPress, showChevron = true, color }: Setti
 
 export default function SettingsScreen() {
   const [qrModalVisible, setQrModalVisible] = useState(false);
+  const { user } = useAuthStore();
+  const { logout } = useAuth();
 
-  // Mock user data - replace with actual user data from store
-  const userId = 'user123';
-  const userName = 'User Name';
+  // Get user data from store
+  const userId = user?.uid || 'unknown';
+  const userName = user?.displayName || 'User';
+  const userAbout = user?.about || t('auth.defaultAbout');
+  const userAvatar = user?.avatarUrl || null;
+
+  const handleLogout = () => {
+    Alert.alert(
+      t('settings.logout'),
+      'Are you sure you want to log out?',
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('settings.logout'),
+          style: 'destructive',
+          onPress: async () => {
+            const result = await logout();
+            if (result.success) {
+              router.replace('/(auth)/welcome');
+            } else {
+              Alert.alert(t('common.error'), result.error || 'Failed to log out');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -56,11 +85,15 @@ export default function SettingsScreen() {
         {/* Profile Section */}
         <Pressable style={styles.profileSection} onPress={() => setQrModalVisible(true)}>
           <View style={styles.avatar}>
-            <Ionicons name="person" size={40} color={Colors.textSecondary} />
+            {userAvatar ? (
+              <Image source={{ uri: userAvatar }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person" size={40} color={Colors.textSecondary} />
+            )}
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>User Name</Text>
-            <Text style={styles.profileAbout}>{t('auth.defaultAbout')}</Text>
+            <Text style={styles.profileName}>{userName}</Text>
+            <Text style={styles.profileAbout} numberOfLines={1}>{userAbout}</Text>
           </View>
           <Ionicons name="qr-code-outline" size={24} color={Colors.primary} />
         </Pressable>
@@ -89,13 +122,14 @@ export default function SettingsScreen() {
             label={t('settings.logout')}
             color={Colors.error}
             showChevron={false}
+            onPress={handleLogout}
           />
         </View>
 
         {/* App Version */}
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>CamChat v1.0.0</Text>
-          <Text style={styles.versionSubtext}>Made with love in Cameroon</Text>
+          <Text style={styles.versionSubtext}>Made with ❤️ in Cameroon 🇨🇲</Text>
         </View>
       </ScrollView>
 
@@ -146,6 +180,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   profileInfo: {
     flex: 1,
