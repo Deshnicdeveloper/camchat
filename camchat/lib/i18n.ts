@@ -206,6 +206,16 @@ const translations = {
       minutesAgo: 'min ago',
       hoursAgo: 'h ago',
     },
+
+    // Voice Notes
+    voiceNotes: {
+      slideToCancel: 'Slide to cancel',
+      recording: 'Recording...',
+      locked: 'Recording locked',
+      tapToStop: 'Tap to stop',
+      permissionRequired: 'Microphone permission is required to record voice notes.',
+      recordingFailed: 'Failed to start recording. Please try again.',
+    },
   },
 
   fr: {
@@ -407,6 +417,16 @@ const translations = {
       justNow: 'À l\'instant',
       minutesAgo: 'min',
       hoursAgo: 'h',
+    },
+
+    // Voice Notes
+    voiceNotes: {
+      slideToCancel: 'Glissez pour annuler',
+      recording: 'Enregistrement...',
+      locked: 'Enregistrement verrouillé',
+      tapToStop: 'Appuyez pour arrêter',
+      permissionRequired: 'L\'autorisation du microphone est requise pour enregistrer des notes vocales.',
+      recordingFailed: 'Échec du démarrage de l\'enregistrement. Veuillez réessayer.',
     },
   },
 };
