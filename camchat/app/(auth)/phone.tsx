@@ -1,6 +1,7 @@
 /**
  * Phone Input Screen
  * User enters their phone number for verification
+ * Cameroon phone numbers: 9 digits, starting with 6 or 2
  */
 
 import { View, Text, StyleSheet, TextInput, Pressable } from 'react-native';
@@ -11,17 +12,51 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, Radius } from '../../constants';
 import { t } from '../../lib/i18n';
 
+/**
+ * Format phone number as user types: 6XX XXX XXX
+ */
+const formatPhoneNumber = (text: string): string => {
+  // Remove all non-digit characters
+  const digits = text.replace(/\D/g, '');
+
+  // Limit to 9 digits
+  const limited = digits.slice(0, 9);
+
+  // Format as XXX XXX XXX
+  if (limited.length <= 3) {
+    return limited;
+  } else if (limited.length <= 6) {
+    return `${limited.slice(0, 3)} ${limited.slice(3)}`;
+  } else {
+    return `${limited.slice(0, 3)} ${limited.slice(3, 6)} ${limited.slice(6)}`;
+  }
+};
+
+/**
+ * Validate Cameroon phone number
+ * Must be exactly 9 digits and start with 6 or 2
+ */
+const validateCameroonPhone = (phone: string): boolean => {
+  const digits = phone.replace(/\D/g, '');
+  return digits.length === 9 && (digits.startsWith('6') || digits.startsWith('2'));
+};
+
 export default function PhoneScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode] = useState('+237'); // Cameroon default
 
+  const handlePhoneChange = (text: string) => {
+    const formatted = formatPhoneNumber(text);
+    setPhoneNumber(formatted);
+  };
+
   const handleContinue = () => {
-    if (phoneNumber.length >= 9) {
+    if (validateCameroonPhone(phoneNumber)) {
       router.push('/(auth)/otp');
     }
   };
 
-  const isValidPhone = phoneNumber.length >= 9;
+  const isValidPhone = validateCameroonPhone(phoneNumber);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -54,8 +89,8 @@ export default function PhoneScreen() {
               placeholderTextColor={Colors.textSecondary}
               keyboardType="phone-pad"
               value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              maxLength={12}
+              onChangeText={handlePhoneChange}
+              maxLength={11}
               autoFocus
             />
           </View>
