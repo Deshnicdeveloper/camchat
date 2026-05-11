@@ -3,51 +3,114 @@
  * Contact picker to start a new conversation
  */
 
+import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, Radius } from '../constants';
 import { t } from '../lib/i18n';
+import { ContactRow } from '../components/chat';
+import { User } from '../types';
 
-// Placeholder contacts
-const MOCK_CONTACTS = [
-  { id: '1', name: 'Jean Pierre', phone: '+237 6XX XXX XX1' },
-  { id: '2', name: 'Marie Antoinette', phone: '+237 6XX XXX XX2' },
-  { id: '3', name: 'Paul Biya Jr', phone: '+237 6XX XXX XX3' },
+// Mock contacts for UI development - will be replaced with synced contacts
+const MOCK_CONTACTS: User[] = [
+  {
+    uid: 'user2',
+    phone: '+237 655 123 456',
+    displayName: 'Marie Ngono',
+    about: "Hey, I'm on CamChat 🦁",
+    avatarUrl: '',
+    language: 'fr',
+    isOnline: true,
+    lastSeen: new Date(),
+    fcmToken: '',
+    contacts: [],
+    createdAt: new Date(),
+  },
+  {
+    uid: 'user3',
+    phone: '+237 677 234 567',
+    displayName: 'Jean-Pierre Kamga',
+    about: 'Busy coding...',
+    avatarUrl: '',
+    language: 'en',
+    isOnline: false,
+    lastSeen: new Date(Date.now() - 3600000),
+    fcmToken: '',
+    contacts: [],
+    createdAt: new Date(),
+  },
+  {
+    uid: 'user4',
+    phone: '+237 699 345 678',
+    displayName: 'Aminatou Bello',
+    about: 'Living the dream ✨',
+    avatarUrl: '',
+    language: 'fr',
+    isOnline: true,
+    lastSeen: new Date(),
+    fcmToken: '',
+    contacts: [],
+    createdAt: new Date(),
+  },
+  {
+    uid: 'user5',
+    phone: '+237 622 456 789',
+    displayName: 'Emmanuel Fotso',
+    about: 'Football fan ⚽',
+    avatarUrl: '',
+    language: 'fr',
+    isOnline: false,
+    lastSeen: new Date(Date.now() - 86400000),
+    fcmToken: '',
+    contacts: [],
+    createdAt: new Date(),
+  },
+  {
+    uid: 'user6',
+    phone: '+237 688 567 890',
+    displayName: 'Sylvie Mbah',
+    about: 'Entrepreneur 💼',
+    avatarUrl: '',
+    language: 'en',
+    isOnline: true,
+    lastSeen: new Date(),
+    fcmToken: '',
+    contacts: [],
+    createdAt: new Date(),
+  },
 ];
-
-interface Contact {
-  id: string;
-  name: string;
-  phone: string;
-}
 
 export default function NewChatScreen() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredContacts = MOCK_CONTACTS.filter(
     (contact) =>
-      contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      contact.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       contact.phone.includes(searchQuery)
   );
 
-  const handleSelectContact = (contact: Contact) => {
-    // Navigate to chat room with this contact
-    router.push(`/(tabs)/chats/${contact.id}`);
-  };
+  const handleSelectContact = useCallback((contact: User) => {
+    // TODO: Check if chat exists, create if not, then navigate
+    router.push(`/(tabs)/chats/${contact.uid}`);
+  }, []);
 
-  const renderContact = ({ item }: { item: Contact }) => (
-    <Pressable style={styles.contactRow} onPress={() => handleSelectContact(item)}>
-      <View style={styles.avatar}>
-        <Ionicons name="person" size={24} color={Colors.textSecondary} />
-      </View>
-      <View style={styles.contactInfo}>
-        <Text style={styles.contactName}>{item.name}</Text>
-        <Text style={styles.contactPhone}>{item.phone}</Text>
-      </View>
-    </Pressable>
+  const handleNewGroup = useCallback(() => {
+    router.push('/new-group');
+  }, []);
+
+  const renderContact = useCallback(
+    ({ item }: { item: User }) => (
+      <ContactRow contact={item} onPress={() => handleSelectContact(item)} />
+    ),
+    [handleSelectContact]
+  );
+
+  const renderSectionHeader = () => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionHeaderText}>Contacts on CamChat</Text>
+    </View>
   );
 
   return (
@@ -72,30 +135,48 @@ export default function NewChatScreen() {
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+            </Pressable>
+          )}
         </View>
       </View>
 
-      {/* New Group Option */}
-      <Pressable style={styles.newGroupRow} onPress={() => router.push('/new-group')}>
-        <View style={styles.newGroupIcon}>
-          <Ionicons name="people" size={24} color={Colors.textInverse} />
-        </View>
-        <Text style={styles.newGroupText}>{t('groups.newGroup')}</Text>
-      </Pressable>
-
-      {/* Contacts List */}
-      <FlatList
-        data={filteredContacts}
-        keyExtractor={(item) => item.id}
-        renderItem={renderContact}
-        contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No contacts found</Text>
+      {/* Content */}
+      <View style={styles.content}>
+        {/* New Group Option */}
+        <Pressable style={styles.newGroupRow} onPress={handleNewGroup}>
+          <View style={styles.newGroupIcon}>
+            <Ionicons name="people" size={24} color={Colors.textInverse} />
           </View>
-        }
-      />
+          <Text style={styles.newGroupText}>{t('groups.newGroup')}</Text>
+        </Pressable>
+
+        {/* Section Header */}
+        {renderSectionHeader()}
+
+        {/* Contacts List */}
+        <FlatList
+          data={filteredContacts}
+          keyExtractor={(item) => item.uid}
+          renderItem={renderContact}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="person-outline" size={48} color={Colors.textSecondary} />
+              <Text style={styles.emptyText}>No contacts found</Text>
+              <Text style={styles.emptySubtext}>
+                {searchQuery
+                  ? 'Try a different search term'
+                  : 'Sync your contacts to find friends on CamChat'}
+              </Text>
+            </View>
+          }
+        />
+      </View>
     </SafeAreaView>
   );
 }
@@ -143,6 +224,11 @@ const styles = StyleSheet.create({
     fontSize: Typography.size.md,
     color: Colors.textPrimary,
     marginLeft: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  content: {
+    flex: 1,
+    backgroundColor: Colors.background,
   },
   newGroupRow: {
     flexDirection: 'row',
@@ -166,53 +252,43 @@ const styles = StyleSheet.create({
     fontSize: Typography.size.md,
     color: Colors.textPrimary,
   },
-  listContent: {
-    backgroundColor: Colors.background,
-    flexGrow: 1,
-  },
-  contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.lg,
-    backgroundColor: Colors.background,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  sectionHeader: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     backgroundColor: Colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
   },
-  contactInfo: {
-    flex: 1,
-  },
-  contactName: {
+  sectionHeaderText: {
     fontFamily: Typography.fontFamily.semibold,
-    fontSize: Typography.size.md,
-    color: Colors.textPrimary,
-  },
-  contactPhone: {
-    fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
     color: Colors.textSecondary,
-    marginTop: 2,
+    textTransform: 'uppercase',
+  },
+  listContent: {
+    flexGrow: 1,
   },
   separator: {
     height: 1,
     backgroundColor: Colors.divider,
-    marginLeft: 80,
+    marginLeft: Spacing.lg + 48 + Spacing.md,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: Spacing.xxl,
+    paddingVertical: Spacing.xxxl,
+    paddingHorizontal: Spacing.xl,
   },
   emptyText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.md,
+    color: Colors.textPrimary,
+    marginTop: Spacing.lg,
+  },
+  emptySubtext: {
     fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.base,
+    fontSize: Typography.size.sm,
     color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
   },
 });
