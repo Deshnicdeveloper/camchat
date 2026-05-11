@@ -28,6 +28,9 @@ import { useAuthStore } from '../../store/authStore';
 import { sendOTP } from '../../lib/auth';
 import { app } from '../../lib/firebase';
 
+// Timeout for OTP sending (30 seconds)
+const OTP_TIMEOUT = 30000;
+
 /**
  * Format phone number as user types: 6XX XXX XXX
  */
@@ -80,12 +83,22 @@ export default function PhoneScreen() {
     // Format full phone number with country code
     const fullPhoneNumber = countryCode + phoneNumber.replace(/\D/g, '');
 
-    try {
-      // Store the phone number in auth store
-      storePhoneNumber(fullPhoneNumber);
+    // Store the phone number in auth store
+    storePhoneNumber(fullPhoneNumber);
 
-      // Send OTP with reCAPTCHA verifier
-      const result = await sendOTP(fullPhoneNumber, recaptchaVerifier.current!);
+    // Create a timeout promise
+    const timeoutPromise = new Promise<{ success: false; error: string }>((resolve) => {
+      setTimeout(() => {
+        resolve({ success: false, error: 'Request timed out. Please try again.' });
+      }, OTP_TIMEOUT);
+    });
+
+    try {
+      // Race between OTP send and timeout
+      const result = await Promise.race([
+        sendOTP(fullPhoneNumber, recaptchaVerifier.current!),
+        timeoutPromise
+      ]);
 
       setIsSending(false);
 
@@ -118,11 +131,13 @@ export default function PhoneScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Firebase reCAPTCHA Modal */}
+      {/* Firebase reCAPTCHA Modal - Using visible verification for better reliability */}
       <FirebaseRecaptchaVerifierModal
         ref={recaptchaVerifier}
         firebaseConfig={app.options}
-        attemptInvisibleVerification={true}
+        attemptInvisibleVerification={false}
+        title="Verify you're human"
+        cancelLabel="Cancel"
       />
 
       <KeyboardAvoidingView
@@ -169,7 +184,11 @@ export default function PhoneScreen() {
               </View>
 
               {/* reCAPTCHA Banner (required by Firebase) */}
-              <FirebaseRecaptchaBanner style={styles.recaptchaBanner} />
+              <FirebaseRecaptchaBanner
+                style={styles.recaptchaBanner}
+                textStyle={styles.recaptchaText}
+                linkStyle={styles.recaptchaLink}
+              />
             </View>
 
             {/* Continue Button */}
@@ -271,7 +290,16 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   recaptchaBanner: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  recaptchaText: {
+    color: Colors.textInverse,
+    opacity: 0.7,
+    fontSize: Typography.size.xs,
+  },
+  recaptchaLink: {
+    color: Colors.textInverse,
+    opacity: 0.9,
   },
   footer: {
     paddingHorizontal: Spacing.xl,
