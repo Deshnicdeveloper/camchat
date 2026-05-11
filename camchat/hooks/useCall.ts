@@ -4,31 +4,43 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  createAgoraRtcEngine,
-  IRtcEngine,
-  ChannelProfileType,
-  ClientRoleType,
-  RtcConnection,
-  IRtcEngineEventHandler,
-  VideoSourceType,
-  RenderModeType,
-} from 'react-native-agora';
 import { Platform, PermissionsAndroid, Alert } from 'react-native';
 import { Audio } from 'expo-av';
+import Constants from 'expo-constants';
 import { useCallStore } from '../store/callStore';
 import {
   getAgoraAppId,
-  createCall,
   acceptCall,
   endCall,
   subscribeToCallStatus,
 } from '../lib/calls';
 import { getUserProfile } from '../lib/contacts';
-import type { Call, CallType, UserProfile } from '../types';
+import type { Call, CallType } from '../types';
+
+// Check if we're running in Expo Go
+const isExpoGo = Constants.appOwnership === 'expo';
 
 // Agora App ID
 const AGORA_APP_ID = getAgoraAppId();
+
+// Dynamically import Agora (only works in dev client, not Expo Go)
+let AgoraModule: typeof import('react-native-agora') | null = null;
+
+// Try to load Agora module
+async function loadAgoraModule(): Promise<boolean> {
+  if (isExpoGo) {
+    console.warn('⚠️ react-native-agora is not available in Expo Go. Please use a development build.');
+    return false;
+  }
+
+  try {
+    AgoraModule = await import('react-native-agora');
+    return true;
+  } catch (error) {
+    console.warn('⚠️ Failed to load react-native-agora:', error);
+    return false;
+  }
+}
 
 interface UseCallOptions {
   onCallEnded?: () => void;
@@ -45,6 +57,7 @@ interface UseCallReturn {
   remoteUid: number | null;
   callDuration: number;
   networkQuality: 'excellent' | 'good' | 'poor' | 'unknown';
+  isAgoraAvailable: boolean;
 
   // Actions
   initiateCall: (receiverId: string, type: CallType) => Promise<Call | null>;
@@ -60,7 +73,7 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
   const { onCallEnded, onRemoteUserJoined, onRemoteUserLeft, onError } = options;
 
   // Agora engine ref
-  const engineRef = useRef<IRtcEngine | null>(null);
+  const engineRef = useRef<import('react-native-agora').IRtcEngine | null>(null);
 
   // Call status subscription
   const statusUnsubscribeRef = useRef<(() => void) | null>(null);
@@ -69,6 +82,7 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // State
+  const [isAgoraAvailable, setIsAgoraAvailable] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -90,6 +104,11 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
     setCallDuration,
     resetCall,
   } = useCallStore();
+
+  // Load Agora module on mount
+  useEffect(() => {
+    loadAgoraModule().then(setIsAgoraAvailable);
+  }, []);
 
   /**
    * Request permissions for audio/video
@@ -133,6 +152,11 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
    * Initialize Agora RTC engine
    */
   const initializeEngine = useCallback(async (isVideo: boolean): Promise<boolean> => {
+    if (!isAgoraAvailable || !AgoraModule) {
+      onError?.('Agora is not available. Please use a development build instead of Expo Go.');
+      return false;
+    }
+
     try {
       if (engineRef.current) {
         console.log('📞 Agora engine already initialized');
@@ -149,36 +173,36 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       }
 
       // Create engine
-      const engine = createAgoraRtcEngine();
+      const engine = AgoraModule.createAgoraRtcEngine();
       engineRef.current = engine;
 
       // Initialize with App ID
       engine.initialize({
         appId: AGORA_APP_ID,
-        channelProfile: ChannelProfileType.ChannelProfileCommunication,
+        channelProfile: AgoraModule.ChannelProfileType.ChannelProfileCommunication,
       });
 
       // Register event handlers
-      const eventHandler: IRtcEngineEventHandler = {
-        onJoinChannelSuccess: (connection: RtcConnection, elapsed: number) => {
+      const eventHandler: import('react-native-agora').IRtcEngineEventHandler = {
+        onJoinChannelSuccess: (connection, elapsed) => {
           console.log('✅ Joined channel:', connection.channelId, 'elapsed:', elapsed);
           setIsConnected(true);
           setIsConnecting(false);
         },
 
-        onLeaveChannel: (connection: RtcConnection, stats) => {
+        onLeaveChannel: (connection, stats) => {
           console.log('👋 Left channel:', connection.channelId);
           setIsConnected(false);
           setRemoteUid(null);
         },
 
-        onUserJoined: (connection: RtcConnection, uid: number, elapsed: number) => {
+        onUserJoined: (connection, uid, elapsed) => {
           console.log('👤 Remote user joined:', uid);
           setRemoteUid(uid);
           onRemoteUserJoined?.(uid);
         },
 
-        onUserOffline: (connection: RtcConnection, uid: number, reason) => {
+        onUserOffline: (connection, uid, reason) => {
           console.log('👤 Remote user left:', uid, 'reason:', reason);
           setRemoteUid(null);
           onRemoteUserLeft?.(uid);
@@ -227,7 +251,7 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       onError?.(error instanceof Error ? error.message : 'Failed to initialize call');
       return false;
     }
-  }, [requestPermissions, onRemoteUserJoined, onRemoteUserLeft, onError]);
+  }, [isAgoraAvailable, requestPermissions, onRemoteUserJoined, onRemoteUserLeft, onError]);
 
   /**
    * Cleanup Agora engine
@@ -255,6 +279,14 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
     receiverId: string,
     type: CallType
   ): Promise<Call | null> => {
+    if (!isAgoraAvailable) {
+      Alert.alert(
+        'Development Build Required',
+        'Voice and video calls require a development build. Expo Go does not support native modules like Agora.\n\nPlease build the app with "npx expo run:ios" or "npx expo run:android".'
+      );
+      return null;
+    }
+
     try {
       setIsConnecting(true);
 
@@ -274,6 +306,7 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       }
 
       // Create call in Firestore
+      const { createCall } = await import('../lib/calls');
       const result = await createCall(
         useCallStore.getState().activeCall?.callerId || '',
         receiverId,
@@ -315,12 +348,20 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       setIsConnecting(false);
       return null;
     }
-  }, [initializeEngine, setActiveCall, setRemoteUser, isConnected, onError]);
+  }, [isAgoraAvailable, initializeEngine, setActiveCall, setRemoteUser, isConnected, onError]);
 
   /**
    * Join an existing call (for receiver)
    */
   const joinCall = useCallback(async (call: Call): Promise<boolean> => {
+    if (!isAgoraAvailable) {
+      Alert.alert(
+        'Development Build Required',
+        'Voice and video calls require a development build. Expo Go does not support native modules like Agora.'
+      );
+      return false;
+    }
+
     try {
       setIsConnecting(true);
 
@@ -361,13 +402,13 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       setIsConnecting(false);
       return false;
     }
-  }, [initializeEngine, setActiveCall, onError]);
+  }, [isAgoraAvailable, initializeEngine, setActiveCall, onError]);
 
   /**
    * Join Agora channel
    */
   const joinChannel = useCallback(async (call: Call) => {
-    if (!engineRef.current || !call.agoraChannelName) {
+    if (!engineRef.current || !call.agoraChannelName || !AgoraModule) {
       console.error('Cannot join channel: engine not initialized or no channel name');
       return;
     }
@@ -378,13 +419,13 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       // Use UID 0 for auto-assign, or use a hash of the user ID
       const uid = 0;
 
-      // Join with token (null for testing without token server)
+      // Join with token (empty string for no token)
       engineRef.current.joinChannel(
         call.agoraToken || '', // Empty string for no token
         call.agoraChannelName,
         uid,
         {
-          clientRoleType: ClientRoleType.ClientRoleBroadcaster,
+          clientRoleType: AgoraModule.ClientRoleType.ClientRoleBroadcaster,
           autoSubscribeAudio: true,
           autoSubscribeVideo: call.type === 'video',
         }
@@ -549,6 +590,7 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
     remoteUid,
     callDuration,
     networkQuality,
+    isAgoraAvailable,
 
     // Actions
     initiateCall,
