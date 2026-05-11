@@ -630,13 +630,16 @@ export default function ChatDetailScreen() {
 
       console.log('✅ Voice note uploaded:', uploadResult.url);
 
+      // Mark as cached so sender doesn't need to "download" their own voice note
+      voiceCache.markAsCached(uploadResult.url, uri);
+
       // Send message with the uploaded URL
       await sendVoice(uploadResult.url, duration);
 
       // Scroll to bottom
       scrollToBottom();
     },
-    [chatId, user?.uid, sendVoice, scrollToBottom]
+    [chatId, user?.uid, sendVoice, scrollToBottom, voiceCache]
   );
 
   // Handle voice note download
@@ -648,26 +651,38 @@ export default function ChatDetailScreen() {
     [voiceCache]
   );
 
-  // Handle voice note play - uses cached local file
+  // Handle voice note play - uses cached local file or remote URL for sent messages
   const handleVoiceNotePlay = useCallback(
     async (message: Message) => {
       if (!message.mediaUrl) return;
 
-      // Check if downloaded
-      let localUri = voiceCache.getLocalUri(message.mediaUrl);
+      const isSentByMe = message.senderId === user?.uid;
 
-      if (!localUri) {
-        // Download first
-        console.log('📥 Downloading voice note before playing...');
-        localUri = await voiceCache.download(message.mediaUrl, message.id);
-      }
+      // Check if downloaded in cache
+      let localUri = voiceCache.getLocalUri(message.mediaUrl);
 
       if (localUri) {
         // Play from local cache
         playVoiceNote(localUri, message.id);
+        return;
+      }
+
+      // For sent messages, play directly from remote URL (no download needed)
+      if (isSentByMe) {
+        console.log('▶️ Playing sent voice note from remote URL');
+        playVoiceNote(message.mediaUrl, message.id);
+        return;
+      }
+
+      // For received messages, download first
+      console.log('📥 Downloading voice note before playing...');
+      localUri = await voiceCache.download(message.mediaUrl, message.id);
+
+      if (localUri) {
+        playVoiceNote(localUri, message.id);
       }
     },
-    [voiceCache, playVoiceNote]
+    [voiceCache, playVoiceNote, user?.uid]
   );
 
   // Render list item
@@ -684,14 +699,15 @@ export default function ChatDetailScreen() {
       const showSenderInfo = isGroupChat && !isSent;
 
       // Voice note cache state
+      // Sent voice notes are always "downloaded" (user doesn't need to download their own)
       const isVoiceNote = message.type === 'audio' && message.mediaUrl;
       const isVoiceNoteDownloaded = isVoiceNote
-        ? voiceCache.isDownloaded(message.mediaUrl!)
+        ? (isSent || voiceCache.isDownloaded(message.mediaUrl!))
         : true;
-      const isVoiceNoteDownloading = isVoiceNote
+      const isVoiceNoteDownloading = isVoiceNote && !isSent
         ? voiceCache.isDownloading(message.mediaUrl!)
         : false;
-      const voiceNoteDownloadProgress = isVoiceNote
+      const voiceNoteDownloadProgress = isVoiceNote && !isSent
         ? voiceCache.getProgress(message.mediaUrl!)
         : 0;
 

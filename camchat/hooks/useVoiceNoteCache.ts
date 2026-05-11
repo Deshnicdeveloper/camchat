@@ -5,20 +5,14 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-// @ts-ignore - expo-file-system types issue
-import * as FileSystem from 'expo-file-system';
+// Use legacy API for expo-file-system v54+
+import * as FileSystem from 'expo-file-system/legacy';
 
 interface CachedVoiceNote {
   remoteUrl: string;
   localUri: string;
   downloadedAt: number;
   size?: number;
-}
-
-interface VoiceNoteCacheState {
-  cache: Map<string, CachedVoiceNote>;
-  downloading: Set<string>;
-  downloadProgress: Map<string, number>;
 }
 
 interface UseVoiceNoteCacheReturn {
@@ -32,13 +26,14 @@ interface UseVoiceNoteCacheReturn {
   getProgress: (remoteUrl: string) => number;
   // Download a voice note
   download: (remoteUrl: string, messageId: string) => Promise<string | null>;
+  // Mark a voice note as already cached (for sent messages)
+  markAsCached: (remoteUrl: string, localUri: string) => void;
   // Clear the cache
   clearCache: () => Promise<void>;
 }
 
 // Cache directory for voice notes
-// @ts-ignore - expo-file-system types issue
-const VOICE_CACHE_DIR = `${FileSystem.cacheDirectory || ''}voice_notes/`;
+const VOICE_CACHE_DIR = `${FileSystem.cacheDirectory}voice_notes/`;
 
 // Global cache state (persists across hook instances)
 const globalCache = new Map<string, CachedVoiceNote>();
@@ -52,10 +47,14 @@ export function useVoiceNoteCache(): UseVoiceNoteCacheReturn {
   // Ensure cache directory exists
   useEffect(() => {
     const ensureCacheDir = async () => {
-      const dirInfo = await FileSystem.getInfoAsync(VOICE_CACHE_DIR);
-      if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(VOICE_CACHE_DIR, { intermediates: true });
-        console.log('📁 Voice cache directory created');
+      try {
+        const dirInfo = await FileSystem.getInfoAsync(VOICE_CACHE_DIR);
+        if (!dirInfo.exists) {
+          await FileSystem.makeDirectoryAsync(VOICE_CACHE_DIR, { intermediates: true });
+          console.log('📁 Voice cache directory created');
+        }
+      } catch (error) {
+        console.error('Error creating voice cache directory:', error);
       }
     };
     ensureCacheDir();
@@ -95,6 +94,21 @@ export function useVoiceNoteCache(): UseVoiceNoteCacheReturn {
   }, []);
 
   /**
+   * Mark a voice note as already cached (for sent messages)
+   * This prevents the user from having to "download" their own voice notes
+   */
+  const markAsCached = useCallback((remoteUrl: string, localUri: string) => {
+    if (!globalCache.has(remoteUrl)) {
+      globalCache.set(remoteUrl, {
+        remoteUrl,
+        localUri,
+        downloadedAt: Date.now(),
+      });
+      console.log('✅ Voice note marked as cached (sent)');
+    }
+  }, []);
+
+  /**
    * Download a voice note
    */
   const download = useCallback(async (remoteUrl: string, messageId: string): Promise<string | null> => {
@@ -102,10 +116,14 @@ export function useVoiceNoteCache(): UseVoiceNoteCacheReturn {
     const cached = globalCache.get(remoteUrl);
     if (cached) {
       // Verify file still exists
-      const info = await FileSystem.getInfoAsync(cached.localUri);
-      if (info.exists) {
-        console.log('✅ Voice note already cached:', messageId);
-        return cached.localUri;
+      try {
+        const info = await FileSystem.getInfoAsync(cached.localUri);
+        if (info.exists) {
+          console.log('✅ Voice note already cached:', messageId);
+          return cached.localUri;
+        }
+      } catch (e) {
+        // File check failed, try re-downloading
       }
       // File was deleted, remove from cache
       globalCache.delete(remoteUrl);
@@ -185,6 +203,7 @@ export function useVoiceNoteCache(): UseVoiceNoteCacheReturn {
     isDownloading,
     getProgress,
     download,
+    markAsCached,
     clearCache,
   };
 }
