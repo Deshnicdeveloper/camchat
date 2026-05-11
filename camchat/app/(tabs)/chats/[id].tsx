@@ -27,6 +27,7 @@ import { Colors, Typography, Spacing, Radius } from '../../../constants';
 import { t } from '../../../lib/i18n';
 import { formatLastSeen } from '../../../utils/formatters';
 import { MessageBubble, MessageInput, DateSeparator } from '../../../components/chat';
+import PendingMessageBubble from '../../../components/chat/PendingMessageBubble';
 import { TypingIndicator } from '../../../components/chat/TypingIndicator';
 import { MessageActionsSheet } from '../../../components/chat/MessageActionsSheet';
 import { AttachmentPicker } from '../../../components/chat/AttachmentPicker';
@@ -35,6 +36,7 @@ import { useMessages } from '../../../hooks/useMessages';
 import { useChat } from '../../../hooks/useChat';
 import { useVoicePlayback } from '../../../hooks/useVoicePlayback';
 import { useVoiceNoteCache } from '../../../hooks/useVoiceNoteCache';
+import { usePendingMessages } from '../../../hooks/usePendingMessages';
 import { useAuthStore } from '../../../store/authStore';
 import { getChatById } from '../../../lib/chat';
 import { getUsersByIds } from '../../../lib/contacts';
@@ -50,10 +52,11 @@ function isDifferentDay(date1: Date, date2: Date): boolean {
   );
 }
 
-// Type for list items (message or date separator)
+// Type for list items (message, date separator, or pending message)
 type ListItem =
   | { type: 'message'; data: Message }
-  | { type: 'separator'; date: Date; key: string };
+  | { type: 'separator'; date: Date; key: string }
+  | { type: 'pending'; data: import('../../../hooks/usePendingMessages').PendingMessage };
 
 export default function ChatDetailScreen() {
   const { id: chatId } = useLocalSearchParams<{ id: string }>();
@@ -93,6 +96,17 @@ export default function ChatDetailScreen() {
 
   // Voice note cache hook
   const voiceCache = useVoiceNoteCache();
+
+  // Pending messages hook for optimistic UI
+  const {
+    pendingMessages,
+    addPending,
+    updateProgress,
+    markAsSending,
+    markAsFailed,
+    removePending,
+    retryPending,
+  } = usePendingMessages();
 
   // Load chat data
   useEffect(() => {
@@ -176,7 +190,7 @@ export default function ChatDetailScreen() {
     participants: chat?.participants || [],
   });
 
-  // Build list items with date separators
+  // Build list items with date separators and pending messages
   const listItems = useMemo((): ListItem[] => {
     const items: ListItem[] = [];
     let lastDate: Date | null = null;
@@ -197,8 +211,23 @@ export default function ChatDetailScreen() {
       items.push({ type: 'message', data: message });
     });
 
+    // Add pending messages at the end (they show with optimistic UI)
+    pendingMessages.forEach((pending) => {
+      // Add today separator if needed for pending messages
+      const today = new Date();
+      if (!lastDate || isDifferentDay(lastDate, today)) {
+        items.push({
+          type: 'separator',
+          date: today,
+          key: `separator-${today.toISOString().split('T')[0]}`,
+        });
+        lastDate = today;
+      }
+      items.push({ type: 'pending', data: pending });
+    });
+
     return items;
-  }, [messages]);
+  }, [messages, pendingMessages]);
 
   // Get participant name for header
   const participantName = useMemo(() => {
@@ -367,6 +396,8 @@ export default function ChatDetailScreen() {
   const handleCamera = useCallback(async () => {
     if (!chatId || !user?.uid) return;
 
+    let pendingId: string | null = null;
+
     try {
       // Request camera permission
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -377,7 +408,7 @@ export default function ChatDetailScreen() {
 
       // Launch camera
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        mediaTypes: ['images', 'videos'],
         quality: 0.8,
         videoMaxDuration: 60,
       });
@@ -385,18 +416,24 @@ export default function ChatDetailScreen() {
       if (result.canceled || !result.assets?.[0]) return;
 
       const asset = result.assets[0];
-      setIsUploading(true);
-
       const isVideo = asset.type === 'video';
       const mediaType = isVideo ? 'video' : 'image';
 
+      // Add pending message for optimistic UI
+      pendingId = addPending({
+        type: mediaType,
+        localUri: asset.uri,
+      });
+
       console.log(`📸 Uploading ${mediaType} from camera...`);
+      scrollToBottom();
 
       const uploadResult = await uploadChatMediaFromUri(
         chatId,
         user.uid,
         asset.uri,
-        mediaType
+        mediaType,
+        (progress) => updateProgress(pendingId!, progress)
       );
 
       if (!uploadResult.success || !uploadResult.url) {
@@ -404,25 +441,32 @@ export default function ChatDetailScreen() {
       }
 
       console.log(`✅ ${mediaType} uploaded:`, uploadResult.url);
+      markAsSending(pendingId);
 
       if (isVideo) {
-        await sendVideo(uploadResult.url, asset.uri); // Use original as thumbnail
+        await sendVideo(uploadResult.url, asset.uri);
       } else {
         await sendImage(uploadResult.url);
       }
 
+      // Remove pending message after successful send
+      removePending(pendingId);
       scrollToBottom();
     } catch (error) {
       console.error('Camera error:', error);
-      Alert.alert(t('common.error'), t('attachments.sendFailed'));
-    } finally {
-      setIsUploading(false);
+      // Mark pending message as failed
+      if (pendingId) {
+        const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+        markAsFailed(pendingId, errorMessage);
+      }
     }
-  }, [chatId, user?.uid, sendImage, sendVideo, scrollToBottom]);
+  }, [chatId, user?.uid, sendImage, sendVideo, scrollToBottom, addPending, updateProgress, markAsSending, markAsFailed, removePending]);
 
   // Handle gallery picker
   const handleGallery = useCallback(async () => {
     if (!chatId || !user?.uid) return;
+
+    let pendingId: string | null = null;
 
     try {
       // Request media library permission
@@ -434,7 +478,7 @@ export default function ChatDetailScreen() {
 
       // Pick media
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        mediaTypes: ['images', 'videos'],
         quality: 0.8,
         videoMaxDuration: 60,
         allowsMultipleSelection: false,
@@ -443,18 +487,24 @@ export default function ChatDetailScreen() {
       if (result.canceled || !result.assets?.[0]) return;
 
       const asset = result.assets[0];
-      setIsUploading(true);
-
       const isVideo = asset.type === 'video';
       const mediaType = isVideo ? 'video' : 'image';
 
+      // Add pending message for optimistic UI
+      pendingId = addPending({
+        type: mediaType,
+        localUri: asset.uri,
+      });
+
       console.log(`🖼️ Uploading ${mediaType} from gallery...`);
+      scrollToBottom();
 
       const uploadResult = await uploadChatMediaFromUri(
         chatId,
         user.uid,
         asset.uri,
-        mediaType
+        mediaType,
+        (progress) => updateProgress(pendingId!, progress)
       );
 
       if (!uploadResult.success || !uploadResult.url) {
@@ -462,6 +512,7 @@ export default function ChatDetailScreen() {
       }
 
       console.log(`✅ ${mediaType} uploaded:`, uploadResult.url);
+      markAsSending(pendingId);
 
       if (isVideo) {
         await sendVideo(uploadResult.url, asset.uri);
@@ -469,18 +520,24 @@ export default function ChatDetailScreen() {
         await sendImage(uploadResult.url);
       }
 
+      // Remove pending message after successful send
+      removePending(pendingId);
       scrollToBottom();
     } catch (error) {
       console.error('Gallery error:', error);
-      Alert.alert(t('common.error'), t('attachments.sendFailed'));
-    } finally {
-      setIsUploading(false);
+      // Mark pending message as failed
+      if (pendingId) {
+        const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+        markAsFailed(pendingId, errorMessage);
+      }
     }
-  }, [chatId, user?.uid, sendImage, sendVideo, scrollToBottom]);
+  }, [chatId, user?.uid, sendImage, sendVideo, scrollToBottom, addPending, updateProgress, markAsSending, markAsFailed, removePending]);
 
   // Handle document picker
   const handleDocument = useCallback(async () => {
     if (!chatId || !user?.uid) return;
+
+    let pendingId: string | null = null;
 
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -491,15 +548,24 @@ export default function ChatDetailScreen() {
       if (result.canceled || !result.assets?.[0]) return;
 
       const asset = result.assets[0];
-      setIsUploading(true);
+
+      // Add pending message for optimistic UI
+      pendingId = addPending({
+        type: 'document',
+        localUri: asset.uri,
+        fileName: asset.name,
+        fileSize: asset.size,
+      });
 
       console.log('📄 Uploading document:', asset.name);
+      scrollToBottom();
 
       const uploadResult = await uploadChatMediaFromUri(
         chatId,
         user.uid,
         asset.uri,
-        'document'
+        'document',
+        (progress) => updateProgress(pendingId!, progress)
       );
 
       if (!uploadResult.success || !uploadResult.url) {
@@ -507,35 +573,52 @@ export default function ChatDetailScreen() {
       }
 
       console.log('✅ Document uploaded:', uploadResult.url);
+      markAsSending(pendingId);
 
       await sendDocument(uploadResult.url, asset.name, asset.size || 0);
+
+      // Remove pending message after successful send
+      removePending(pendingId);
       scrollToBottom();
     } catch (error) {
       console.error('Document error:', error);
-      Alert.alert(t('common.error'), t('attachments.sendFailed'));
-    } finally {
-      setIsUploading(false);
+      // Mark pending message as failed
+      if (pendingId) {
+        const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+        markAsFailed(pendingId, errorMessage);
+      }
     }
-  }, [chatId, user?.uid, sendDocument, scrollToBottom]);
+  }, [chatId, user?.uid, sendDocument, scrollToBottom, addPending, updateProgress, markAsSending, markAsFailed, removePending]);
 
   // Handle location sharing
   const handleLocation = useCallback(async () => {
     try {
-      // Request location permission
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(t('common.error'), t('attachments.locationPermission'));
-        return;
+      // Check current permission status first
+      const { status: currentStatus } = await Location.getForegroundPermissionsAsync();
+
+      // If permission not determined, request it
+      if (currentStatus !== 'granted') {
+        console.log('📍 Requesting location permission...');
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(t('common.error'), t('attachments.locationPermission'));
+          return;
+        }
       }
 
       setIsUploading(true);
-      console.log('📍 Getting location...');
+      console.log('📍 Getting current GPS location...');
 
+      // Get actual GPS location with high accuracy
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.High,
+        // Timeout after 15 seconds
+        timeInterval: 15000,
       });
 
-      // Try to get address
+      console.log('📍 GPS coordinates:', location.coords.latitude, location.coords.longitude);
+
+      // Try to get address from actual GPS coordinates
       let label = 'My Location';
       try {
         const [address] = await Location.reverseGeocodeAsync({
@@ -547,8 +630,10 @@ export default function ChatDetailScreen() {
             .filter(Boolean)
             .join(', ');
         }
+        console.log('📍 Address resolved:', label);
       } catch (e) {
-        console.log('Could not reverse geocode');
+        console.log('Could not reverse geocode, using coordinates');
+        label = `${location.coords.latitude.toFixed(6)}, ${location.coords.longitude.toFixed(6)}`;
       }
 
       const locationData: LocationData = {
@@ -572,7 +657,27 @@ export default function ChatDetailScreen() {
   // Handle attachment selection
   const handleAttachment = useCallback(
     async (type: 'camera' | 'gallery' | 'document' | 'location') => {
+      // For location, we need to handle permission first before closing picker
+      // to avoid the picker dismissal interfering with permission dialog
+      if (type === 'location') {
+        // Check permission status first
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          // Request permission while picker is still visible
+          // This prevents the auto-dismiss from interfering
+          const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
+          if (newStatus !== 'granted') {
+            setShowAttachmentPicker(false);
+            Alert.alert(t('common.error'), t('attachments.locationPermission'));
+            return;
+          }
+        }
+      }
+
       setShowAttachmentPicker(false);
+
+      // Small delay to allow picker animation to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       switch (type) {
         case 'camera':
@@ -685,11 +790,84 @@ export default function ChatDetailScreen() {
     [voiceCache, playVoiceNote, user?.uid]
   );
 
+  // Handle retry of a pending message
+  const handleRetryPending = useCallback(
+    async (pendingId: string) => {
+      const pending = retryPending(pendingId);
+      if (!pending || !chatId || !user?.uid) return;
+
+      // Re-upload based on type
+      try {
+        if (pending.type === 'image' || pending.type === 'video') {
+          if (!pending.localUri) return;
+          const uploadResult = await uploadChatMediaFromUri(
+            chatId,
+            user.uid,
+            pending.localUri,
+            pending.type,
+            (progress) => updateProgress(pendingId, progress)
+          );
+
+          if (!uploadResult.success || !uploadResult.url) {
+            throw new Error(uploadResult.error || 'Upload failed');
+          }
+
+          markAsSending(pendingId);
+
+          if (pending.type === 'video') {
+            await sendVideo(uploadResult.url, pending.localUri);
+          } else {
+            await sendImage(uploadResult.url);
+          }
+
+          removePending(pendingId);
+        } else if (pending.type === 'document' && pending.localUri) {
+          const uploadResult = await uploadChatMediaFromUri(
+            chatId,
+            user.uid,
+            pending.localUri,
+            'document',
+            (progress) => updateProgress(pendingId, progress)
+          );
+
+          if (!uploadResult.success || !uploadResult.url) {
+            throw new Error(uploadResult.error || 'Upload failed');
+          }
+
+          markAsSending(pendingId);
+          await sendDocument(uploadResult.url, pending.fileName || 'document', pending.fileSize || 0);
+          removePending(pendingId);
+        }
+      } catch (error) {
+        console.error('Retry failed:', error);
+        markAsFailed(pendingId, error instanceof Error ? error.message : 'Upload failed');
+      }
+    },
+    [chatId, user?.uid, retryPending, updateProgress, markAsSending, markAsFailed, removePending, sendImage, sendVideo, sendDocument]
+  );
+
+  // Handle cancel of a pending message
+  const handleCancelPending = useCallback((pendingId: string) => {
+    removePending(pendingId);
+  }, [removePending]);
+
   // Render list item
   const renderItem = useCallback(
     ({ item }: { item: ListItem }) => {
       if (item.type === 'separator') {
         return <DateSeparator date={item.date} />;
+      }
+
+      // Handle pending messages (optimistic UI)
+      if (item.type === 'pending') {
+        const pending = item.data;
+        return (
+          <PendingMessageBubble
+            message={pending}
+            onRetry={() => handleRetryPending(pending.id)}
+            onCancel={() => handleCancelPending(pending.id)}
+          />
+        );
       }
 
       const message = item.data;
@@ -755,6 +933,8 @@ export default function ChatDetailScreen() {
       handleVoiceNoteDownload,
       getParticipantName,
       getParticipantAvatar,
+      handleRetryPending,
+      handleCancelPending,
     ]
   );
 
@@ -762,6 +942,9 @@ export default function ChatDetailScreen() {
   const keyExtractor = useCallback((item: ListItem) => {
     if (item.type === 'separator') {
       return item.key;
+    }
+    if (item.type === 'pending') {
+      return `pending-${item.data.id}`;
     }
     return item.data.id;
   }, []);
