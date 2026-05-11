@@ -14,6 +14,8 @@ import {
   archiveChat,
   muteChat,
   deleteChatForUser,
+  createGroupChat,
+  leaveGroup,
 } from '../lib/chat';
 import { getUsersByIds } from '../lib/contacts';
 import type { Chat, User, UserProfile } from '../types';
@@ -27,10 +29,17 @@ interface UseChatReturn {
 
   // Actions
   startChat: (otherUserId: string) => Promise<{ success: boolean; chatId?: string; error?: string }>;
+  startGroupChat: (
+    groupName: string,
+    participantIds: string[],
+    groupDescription?: string,
+    groupAvatarUrl?: string
+  ) => Promise<{ success: boolean; chatId?: string; error?: string }>;
   openChat: (chatId: string) => Promise<void>;
   archiveChat: (chatId: string) => Promise<void>;
   muteChat: (chatId: string) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
+  leaveGroupChat: (chatId: string) => Promise<{ success: boolean; error?: string }>;
   getParticipant: (participantId: string) => UserProfile | undefined;
   getChatParticipant: (chat: Chat) => UserProfile | undefined;
 }
@@ -166,6 +175,66 @@ export function useChat(): UseChatReturn {
   );
 
   /**
+   * Start a new group chat
+   */
+  const startGroupChat = useCallback(
+    async (
+      groupName: string,
+      participantIds: string[],
+      groupDescription?: string,
+      groupAvatarUrl?: string
+    ): Promise<{ success: boolean; chatId?: string; error?: string }> => {
+      if (!user?.uid) {
+        return { success: false, error: 'Not authenticated' };
+      }
+
+      try {
+        const result = await createGroupChat(
+          user.uid,
+          groupName,
+          participantIds,
+          groupDescription,
+          groupAvatarUrl
+        );
+        return result;
+      } catch (err) {
+        console.error('Error starting group chat:', err);
+        return {
+          success: false,
+          error: err instanceof Error ? err.message : 'Failed to create group chat',
+        };
+      }
+    },
+    [user?.uid]
+  );
+
+  /**
+   * Leave a group chat
+   */
+  const handleLeaveGroup = useCallback(
+    async (chatId: string): Promise<{ success: boolean; error?: string }> => {
+      if (!user?.uid) {
+        return { success: false, error: 'Not authenticated' };
+      }
+
+      try {
+        const result = await leaveGroup(chatId, user.uid);
+        if (result.success) {
+          removeChat(chatId);
+        }
+        return result;
+      } catch (err) {
+        console.error('Error leaving group:', err);
+        return {
+          success: false,
+          error: err instanceof Error ? err.message : 'Failed to leave group',
+        };
+      }
+    },
+    [user?.uid, removeChat]
+  );
+
+  /**
    * Open an existing chat and reset unread count
    */
   const openChat = useCallback(
@@ -280,10 +349,12 @@ export function useChat(): UseChatReturn {
     isLoading,
     error,
     startChat,
+    startGroupChat,
     openChat,
     archiveChat: handleArchiveChat,
     muteChat: handleMuteChat,
     deleteChat: handleDeleteChat,
+    leaveGroupChat: handleLeaveGroup,
     getParticipant,
     getChatParticipant,
   };
