@@ -13,13 +13,22 @@ import {
   ConfirmationResult,
   RecaptchaVerifier,
   ApplicationVerifier,
+  signInAnonymously,
 } from 'firebase/auth';
 import { auth } from './firebase';
 import { COLLECTIONS, getDocument, setDocument, updateDocument, getServerTimestamp } from './firestore';
 import type { User, AppLanguage } from '../types';
 
+// Development mode flag - set to true to bypass Firebase Phone Auth
+// Set to false for production
+const DEV_MODE = __DEV__ && true; // Only active in development builds
+const DEV_OTP_CODE = '123456'; // Test OTP code for development
+
 // Store confirmation result for OTP verification
 let confirmationResult: ConfirmationResult | null = null;
+
+// Store phone number for dev mode
+let devModePhoneNumber: string | null = null;
 
 /**
  * Format phone number to E.164 format for Cameroon
@@ -46,10 +55,11 @@ export function formatPhoneNumber(phoneNumber: string, countryCode: string = '+2
 /**
  * Send OTP to phone number
  * Uses Firebase Phone Auth with reCAPTCHA verification
+ * In DEV_MODE, simulates OTP sending without Firebase
  */
 export async function sendOTP(
   phoneNumber: string,
-  recaptchaVerifier: ApplicationVerifier
+  recaptchaVerifier?: ApplicationVerifier
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const formattedPhone = formatPhoneNumber(phoneNumber);
@@ -57,6 +67,16 @@ export async function sendOTP(
     // For development/testing, log the phone number
     console.log('Sending OTP to:', formattedPhone);
 
+    // Development mode - bypass Firebase Phone Auth
+    if (DEV_MODE) {
+      console.log('🔧 DEV MODE: Simulating OTP send. Use code:', DEV_OTP_CODE);
+      devModePhoneNumber = formattedPhone;
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { success: true };
+    }
+
+    // Production mode - use Firebase Phone Auth
     if (!recaptchaVerifier) {
       return {
         success: false,
@@ -99,11 +119,36 @@ export async function sendOTP(
 
 /**
  * Verify OTP code
+ * In DEV_MODE, accepts the test code and signs in anonymously
  */
 export async function verifyOTP(
   otpCode: string
 ): Promise<{ success: boolean; user?: FirebaseUser; isNewUser?: boolean; error?: string }> {
   try {
+    // Development mode - verify against test code
+    if (DEV_MODE) {
+      console.log('🔧 DEV MODE: Verifying OTP code:', otpCode);
+
+      if (otpCode !== DEV_OTP_CODE) {
+        return { success: false, error: 'Invalid verification code. Use: ' + DEV_OTP_CODE };
+      }
+
+      // Sign in anonymously for development
+      const result = await signInAnonymously(auth);
+      const firebaseUser = result.user;
+
+      // Check if user exists in Firestore
+      const existingUser = await getDocument<User>(COLLECTIONS.USERS, firebaseUser.uid);
+      const isNewUser = !existingUser;
+
+      // Clear dev mode phone number
+      devModePhoneNumber = null;
+
+      console.log('🔧 DEV MODE: Auth successful, isNewUser:', isNewUser);
+      return { success: true, user: firebaseUser, isNewUser };
+    }
+
+    // Production mode - verify with Firebase
     if (!confirmationResult) {
       return { success: false, error: 'No verification in progress. Please request a new code.' };
     }
@@ -244,6 +289,21 @@ export function subscribeToAuthState(
  */
 export function getCurrentFirebaseUser(): FirebaseUser | null {
   return auth.currentUser;
+}
+
+/**
+ * Get the phone number used in dev mode
+ * (Used for creating user profile in dev mode)
+ */
+export function getDevModePhoneNumber(): string | null {
+  return devModePhoneNumber;
+}
+
+/**
+ * Check if dev mode is enabled
+ */
+export function isDevModeEnabled(): boolean {
+  return DEV_MODE;
 }
 
 /**
