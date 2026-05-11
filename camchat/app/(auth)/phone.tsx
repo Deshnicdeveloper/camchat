@@ -14,6 +14,8 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -21,6 +23,7 @@ import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, Radius } from '../../constants';
 import { t } from '../../lib/i18n';
+import { useAuth } from '../../hooks/useAuth';
 
 /**
  * Format phone number as user types: 6XX XXX XXX
@@ -54,15 +57,39 @@ const validateCameroonPhone = (phone: string): boolean => {
 export default function PhoneScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode] = useState('+237'); // Cameroon default
+  const [isSending, setIsSending] = useState(false);
+
+  const { sendVerificationCode } = useAuth();
 
   const handlePhoneChange = (text: string) => {
     const formatted = formatPhoneNumber(text);
     setPhoneNumber(formatted);
   };
 
-  const handleContinue = () => {
-    if (validateCameroonPhone(phoneNumber)) {
-      router.push('/(auth)/otp');
+  const handleContinue = async () => {
+    if (!validateCameroonPhone(phoneNumber)) return;
+
+    setIsSending(true);
+
+    // Format full phone number with country code
+    const fullPhoneNumber = countryCode + phoneNumber.replace(/\D/g, '');
+
+    const result = await sendVerificationCode(fullPhoneNumber);
+
+    setIsSending(false);
+
+    if (result.success) {
+      // Navigate to OTP screen with phone number
+      router.push({
+        pathname: '/(auth)/otp',
+        params: { phone: fullPhoneNumber }
+      });
+    } else {
+      Alert.alert(
+        t('common.error'),
+        result.error || t('auth.sendOtpError'),
+        [{ text: t('common.ok') }]
+      );
     }
   };
 
@@ -117,13 +144,17 @@ export default function PhoneScreen() {
             {/* Continue Button */}
             <View style={styles.footer}>
               <Pressable
-                style={[styles.button, !isValidPhone && styles.buttonDisabled]}
+                style={[styles.button, (!isValidPhone || isSending) && styles.buttonDisabled]}
                 onPress={handleContinue}
-                disabled={!isValidPhone}
+                disabled={!isValidPhone || isSending}
               >
-                <Text style={[styles.buttonText, !isValidPhone && styles.buttonTextDisabled]}>
-                  {t('auth.continue')}
-                </Text>
+                {isSending ? (
+                  <ActivityIndicator color={Colors.primary} />
+                ) : (
+                  <Text style={[styles.buttonText, !isValidPhone && styles.buttonTextDisabled]}>
+                    {t('auth.continue')}
+                  </Text>
+                )}
               </Pressable>
             </View>
           </View>

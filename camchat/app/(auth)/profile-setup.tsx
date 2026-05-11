@@ -14,13 +14,18 @@ import {
   Keyboard,
   Platform,
   ScrollView,
+  Alert,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { Colors, Typography, Spacing, Radius } from '../../constants';
 import { t } from '../../lib/i18n';
+import { useAuth } from '../../hooks/useAuth';
 
 // Default about text with lion emoji (Cameroonian cultural identity)
 const DEFAULT_ABOUT = "Hey, I'm on CamChat 🦁";
@@ -28,11 +33,60 @@ const DEFAULT_ABOUT = "Hey, I'm on CamChat 🦁";
 export default function ProfileSetupScreen() {
   const [displayName, setDisplayName] = useState('');
   const [about, setAbout] = useState(DEFAULT_ABOUT);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleDone = () => {
-    if (displayName.trim().length > 0) {
+  const { completeProfile } = useAuth();
+
+  const handlePickImage = async () => {
+    // Request permission
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      Alert.alert(
+        t('common.error'),
+        t('auth.photoPermissionRequired'),
+        [{ text: t('common.ok') }]
+      );
+      return;
+    }
+
+    // Launch image picker
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setAvatarUri(result.assets[0].uri);
+    }
+  };
+
+  const handleDone = async () => {
+    if (!displayName.trim()) return;
+
+    setIsSaving(true);
+
+    // For now, we'll pass the avatar URI. In a real app, you'd upload to Supabase Storage first.
+    const result = await completeProfile(
+      displayName.trim(),
+      about.trim() || DEFAULT_ABOUT,
+      avatarUri || ''
+    );
+
+    setIsSaving(false);
+
+    if (result.success) {
       // Navigate to main app
       router.replace('/(tabs)/chats');
+    } else {
+      Alert.alert(
+        t('common.error'),
+        result.error || t('auth.profileSetupError'),
+        [{ text: t('common.ok') }]
+      );
     }
   };
 
@@ -64,9 +118,13 @@ export default function ProfileSetupScreen() {
               <Text style={styles.subtitle}>{t('auth.profileSubtitle')}</Text>
 
               {/* Avatar Picker */}
-              <Pressable style={styles.avatarContainer}>
+              <Pressable style={styles.avatarContainer} onPress={handlePickImage}>
                 <View style={styles.avatar}>
-                  <Ionicons name="person" size={48} color={Colors.textSecondary} />
+                  {avatarUri ? (
+                    <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                  ) : (
+                    <Ionicons name="person" size={48} color={Colors.textSecondary} />
+                  )}
                 </View>
                 <View style={styles.cameraIcon}>
                   <Ionicons name="camera" size={18} color={Colors.textInverse} />
@@ -109,13 +167,17 @@ export default function ProfileSetupScreen() {
             {/* Done Button */}
             <View style={styles.footer}>
               <Pressable
-                style={[styles.button, !isValid && styles.buttonDisabled]}
+                style={[styles.button, (!isValid || isSaving) && styles.buttonDisabled]}
                 onPress={handleDone}
-                disabled={!isValid}
+                disabled={!isValid || isSaving}
               >
-                <Text style={[styles.buttonText, !isValid && styles.buttonTextDisabled]}>
-                  {t('common.done')}
-                </Text>
+                {isSaving ? (
+                  <ActivityIndicator color={Colors.primary} />
+                ) : (
+                  <Text style={[styles.buttonText, !isValid && styles.buttonTextDisabled]}>
+                    {t('common.done')}
+                  </Text>
+                )}
               </Pressable>
             </View>
           </View>
@@ -183,6 +245,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 4,
     borderColor: Colors.textInverse,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
   },
   cameraIcon: {
     position: 'absolute',
