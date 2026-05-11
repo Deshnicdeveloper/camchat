@@ -3,12 +3,13 @@
  * Individual message in chat conversation
  */
 
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Colors, Typography, Spacing, Radius } from '../../constants';
 import { formatMessageTime } from '../../utils/formatTime';
+import { VoiceNotePlayer } from './VoiceNotePlayer';
 import { Message, MessageStatus } from '../../types';
 
 interface MessageBubbleProps {
@@ -19,6 +20,13 @@ interface MessageBubbleProps {
   senderAvatar?: string;
   onLongPress?: () => void;
   onImagePress?: () => void;
+  // Voice note playback props
+  isPlayingVoiceNote?: boolean;
+  voiceNotePosition?: number;
+  voiceNotePlaybackSpeed?: 1 | 1.5 | 2;
+  onVoiceNotePlay?: () => void;
+  onVoiceNotePause?: () => void;
+  onVoiceNoteSpeedToggle?: () => void;
 }
 
 /**
@@ -47,10 +55,24 @@ function MessageBubble({
   senderAvatar,
   onLongPress,
   onImagePress,
+  isPlayingVoiceNote = false,
+  voiceNotePosition = 0,
+  voiceNotePlaybackSpeed = 1,
+  onVoiceNotePlay,
+  onVoiceNotePause,
+  onVoiceNoteSpeedToggle,
 }: MessageBubbleProps) {
   const bubbleStyle = isSent ? styles.bubbleSent : styles.bubbleReceived;
   const textStyle = isSent ? styles.textSent : styles.textReceived;
   const timeStyle = isSent ? styles.timeSent : styles.timeReceived;
+
+  const handleVoiceNotePlay = useCallback(() => {
+    if (isPlayingVoiceNote) {
+      onVoiceNotePause?.();
+    } else {
+      onVoiceNotePlay?.();
+    }
+  }, [isPlayingVoiceNote, onVoiceNotePlay, onVoiceNotePause]);
 
   const renderContent = () => {
     switch (message.type) {
@@ -69,39 +91,17 @@ function MessageBubble({
 
       case 'audio':
         return (
-          <View style={styles.audioContainer}>
-            <Pressable style={styles.playButton}>
-              <Ionicons
-                name="play"
-                size={20}
-                color={isSent ? Colors.primary : Colors.textInverse}
-              />
-            </Pressable>
-            <View style={styles.waveform}>
-              {/* Simplified waveform visualization */}
-              {[...Array(20)].map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.waveformBar,
-                    {
-                      height: Math.random() * 20 + 8,
-                      backgroundColor: isSent
-                        ? 'rgba(255,255,255,0.6)'
-                        : Colors.primary,
-                    },
-                  ]}
-                />
-              ))}
-            </View>
-            <Text style={[styles.audioDuration, timeStyle]}>
-              {message.audioDuration
-                ? `${Math.floor(message.audioDuration / 60)}:${(message.audioDuration % 60)
-                    .toString()
-                    .padStart(2, '0')}`
-                : '0:00'}
-            </Text>
-          </View>
+          <VoiceNotePlayer
+            duration={message.audioDuration || 0}
+            currentPosition={voiceNotePosition}
+            isPlaying={isPlayingVoiceNote}
+            isLoading={false}
+            playbackSpeed={voiceNotePlaybackSpeed}
+            isSent={isSent}
+            onPlay={handleVoiceNotePlay}
+            onPause={handleVoiceNotePlay}
+            onSpeedToggle={onVoiceNoteSpeedToggle || (() => {})}
+          />
         );
 
       case 'video':
@@ -335,36 +335,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-
-  // Audio messages
-  audioContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minWidth: 200,
-  },
-  playButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.sm,
-  },
-  waveform: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 32,
-    gap: 2,
-  },
-  waveformBar: {
-    width: 3,
-    borderRadius: 2,
-  },
-  audioDuration: {
-    marginLeft: Spacing.sm,
   },
 
   // Document messages

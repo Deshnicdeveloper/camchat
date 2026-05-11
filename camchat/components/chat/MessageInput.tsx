@@ -9,19 +9,20 @@ import {
   TextInput,
   StyleSheet,
   Pressable,
-  Animated,
-  Keyboard,
+  Text,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, Radius } from '../../constants';
 import { t } from '../../lib/i18n';
+import { VoiceRecordingBar } from './VoiceRecordingBar';
+import { useVoiceRecorder } from '../../hooks/useVoiceRecorder';
 
 interface MessageInputProps {
   onSendMessage: (text: string) => void;
+  onSendVoiceNote?: (uri: string, duration: number) => void;
   onAttachPress: () => void;
   onCameraPress?: () => void;
-  onVoiceStart?: () => void;
-  onVoiceEnd?: () => void;
+  onTextChange?: (text: string) => void;
   replyingTo?: {
     name: string;
     text: string;
@@ -32,10 +33,10 @@ interface MessageInputProps {
 
 export default function MessageInput({
   onSendMessage,
+  onSendVoiceNote,
   onAttachPress,
   onCameraPress,
-  onVoiceStart,
-  onVoiceEnd,
+  onTextChange,
   replyingTo,
   onCancelReply,
   disabled = false,
@@ -44,15 +45,35 @@ export default function MessageInput({
   const [inputHeight, setInputHeight] = useState(40);
   const inputRef = useRef<TextInput>(null);
 
+  const {
+    isRecording,
+    isLocked,
+    duration,
+    metering,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    lockRecording,
+  } = useVoiceRecorder();
+
   const hasText = message.trim().length > 0;
+
+  const handleTextChange = useCallback(
+    (text: string) => {
+      setMessage(text);
+      onTextChange?.(text);
+    },
+    [onTextChange]
+  );
 
   const handleSend = useCallback(() => {
     if (hasText && !disabled) {
       onSendMessage(message.trim());
       setMessage('');
       setInputHeight(40);
+      onTextChange?.('');
     }
-  }, [message, hasText, disabled, onSendMessage]);
+  }, [message, hasText, disabled, onSendMessage, onTextChange]);
 
   const handleContentSizeChange = useCallback(
     (event: { nativeEvent: { contentSize: { height: number } } }) => {
@@ -61,6 +82,45 @@ export default function MessageInput({
     },
     []
   );
+
+  // Voice recording handlers
+  const handleVoiceStart = useCallback(() => {
+    if (!hasText && !disabled) {
+      startRecording();
+    }
+  }, [hasText, disabled, startRecording]);
+
+  const handleVoiceStop = useCallback(async () => {
+    const result = await stopRecording();
+    if (result && onSendVoiceNote) {
+      onSendVoiceNote(result.uri, result.duration);
+    }
+  }, [stopRecording, onSendVoiceNote]);
+
+  const handleVoiceCancel = useCallback(() => {
+    cancelRecording();
+  }, [cancelRecording]);
+
+  const handleVoiceLock = useCallback(() => {
+    lockRecording();
+  }, [lockRecording]);
+
+  // Show recording bar when recording
+  if (isRecording) {
+    return (
+      <View style={styles.container}>
+        <VoiceRecordingBar
+          duration={duration}
+          metering={metering}
+          isLocked={isLocked}
+          onCancel={handleVoiceCancel}
+          onStop={handleVoiceStop}
+          onLock={handleVoiceLock}
+          onSlideCancel={handleVoiceCancel}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -74,18 +134,11 @@ export default function MessageInput({
               <View style={styles.replyInfo}>
                 <View style={styles.replyNameRow}>
                   <Ionicons name="return-down-forward" size={12} color={Colors.primary} />
-                  <TextInput
-                    style={styles.replyName}
-                    editable={false}
-                    value={replyingTo.name}
-                  />
+                  <Text style={styles.replyName}>{replyingTo.name}</Text>
                 </View>
-                <TextInput
-                  style={styles.replyText}
-                  editable={false}
-                  value={replyingTo.text}
-                  numberOfLines={1}
-                />
+                <Text style={styles.replyText} numberOfLines={1}>
+                  {replyingTo.text}
+                </Text>
               </View>
             </View>
           </View>
@@ -111,7 +164,7 @@ export default function MessageInput({
             placeholder={t('chats.typeMessage')}
             placeholderTextColor={Colors.textSecondary}
             value={message}
-            onChangeText={setMessage}
+            onChangeText={handleTextChange}
             multiline
             maxLength={4096}
             onContentSizeChange={handleContentSizeChange}
@@ -135,8 +188,8 @@ export default function MessageInput({
         <Pressable
           style={styles.sendButton}
           onPress={hasText ? handleSend : undefined}
-          onPressIn={!hasText ? onVoiceStart : undefined}
-          onPressOut={!hasText ? onVoiceEnd : undefined}
+          onPressIn={!hasText ? handleVoiceStart : undefined}
+          onPressOut={!hasText && !isLocked ? handleVoiceStop : undefined}
           disabled={disabled}
         >
           <Ionicons
@@ -196,14 +249,12 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.sm,
     color: Colors.primary,
-    padding: 0,
     marginLeft: Spacing.xs,
   },
   replyText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
     color: Colors.textSecondary,
-    padding: 0,
   },
   cancelReply: {
     padding: Spacing.xs,

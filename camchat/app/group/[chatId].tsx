@@ -35,7 +35,7 @@ import {
   getGroupAdmins,
 } from '../../lib/chat';
 import { getUsersByIds, syncContacts } from '../../lib/contacts';
-import { uploadAvatar } from '../../lib/storage';
+import { uploadAvatarFromUri } from '../../lib/storage';
 import type { Chat, UserProfile, Contact } from '../../types';
 
 type ActionSheetAction = {
@@ -161,9 +161,9 @@ export default function GroupInfoScreen() {
 
       if (!result.canceled && result.assets[0]) {
         setIsSaving(true);
-        const uploadResult = await uploadAvatar(
-          result.assets[0].uri,
-          `group_${chatId}`
+        const uploadResult = await uploadAvatarFromUri(
+          `group_${chatId}`,
+          result.assets[0].uri
         );
 
         if (uploadResult.success && uploadResult.url) {

@@ -3,7 +3,7 @@
  * Handles chat operations and real-time chat list updates
  */
 
-import { useEffect, useCallback, useState, useRef } from 'react';
+import { useEffect, useCallback, useState, useRef, useMemo } from 'react';
 import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
 import {
@@ -19,6 +19,29 @@ import {
 } from '../lib/chat';
 import { getUsersByIds } from '../lib/contacts';
 import type { Chat, User, UserProfile } from '../types';
+
+// Helper to compare chat arrays (ignoring typing indicator changes)
+function chatListChanged(prev: Chat[], next: Chat[]): boolean {
+  if (prev.length !== next.length) return true;
+
+  for (let i = 0; i < prev.length; i++) {
+    const p = prev[i];
+    const n = next[i];
+
+    // Compare important fields, ignoring isTyping
+    if (
+      p.id !== n.id ||
+      p.lastMessage?.text !== n.lastMessage?.text ||
+      p.lastMessage?.timestamp?.getTime() !== n.lastMessage?.timestamp?.getTime() ||
+      JSON.stringify(p.unreadCount) !== JSON.stringify(n.unreadCount) ||
+      JSON.stringify(p.participants) !== JSON.stringify(n.participants)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 interface UseChatReturn {
   // State
@@ -57,6 +80,8 @@ export function useChat(): UseChatReturn {
   const [participants, setParticipants] = useState<Map<string, UserProfile>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
+  const lastChatsRef = useRef<Chat[]>([]);
+  const fetchedParticipantIdsRef = useRef<Set<string>>(new Set());
 
   // Subscribe to real-time chat updates
   useEffect(() => {
@@ -79,18 +104,22 @@ export function useChat(): UseChatReturn {
     unsubscribeRef.current = subscribeToChats(
       user.uid,
       (updatedChats) => {
-        console.log('📨 Received chat update:', updatedChats.length, 'chats');
-
         // Filter out chats that are deleted for this user
         const filteredChats = updatedChats.filter(
           (chat) => !(chat as Chat & { deletedFor?: string[] }).deletedFor?.includes(user.uid)
         );
 
-        setChats(filteredChats);
-        setLoading(false);
+        // Only update state and log if chat list actually changed (ignore typing indicator updates)
+        if (chatListChanged(lastChatsRef.current, filteredChats)) {
+          console.log('📨 Received chat update:', filteredChats.length, 'chats');
+          lastChatsRef.current = filteredChats;
+          setChats(filteredChats);
 
-        // Fetch participant data for all chats
-        fetchParticipants(filteredChats);
+          // Only fetch participants for new chats or if we haven't fetched yet
+          fetchParticipantsIfNeeded(filteredChats);
+        }
+
+        setLoading(false);
       },
       (err) => {
         console.error('❌ Chat subscription error:', err);
@@ -110,42 +139,53 @@ export function useChat(): UseChatReturn {
   }, [user?.uid, setChats, setLoading]);
 
   /**
-   * Fetch participant data for all chats
+   * Fetch participant data only for new participants we haven't fetched yet
    */
-  const fetchParticipants = useCallback(
+  const fetchParticipantsIfNeeded = useCallback(
     async (chatList: Chat[]) => {
       if (!user?.uid) return;
 
-      // Collect all unique participant IDs (excluding current user)
-      const participantIds = new Set<string>();
+      // Collect participant IDs we haven't fetched yet
+      const newParticipantIds: string[] = [];
       for (const chat of chatList) {
         for (const participantId of chat.participants) {
-          if (participantId !== user.uid) {
-            participantIds.add(participantId);
+          if (
+            participantId !== user.uid &&
+            !fetchedParticipantIdsRef.current.has(participantId)
+          ) {
+            newParticipantIds.push(participantId);
+            fetchedParticipantIdsRef.current.add(participantId);
           }
         }
       }
 
-      if (participantIds.size === 0) return;
+      if (newParticipantIds.length === 0) return;
+
+      console.log('📡 Fetching new participants:', newParticipantIds.length);
 
       try {
-        const users = await getUsersByIds(Array.from(participantIds));
-        const participantMap = new Map<string, UserProfile>();
+        const users = await getUsersByIds(newParticipantIds);
 
-        for (const u of users) {
-          participantMap.set(u.uid, {
-            uid: u.uid,
-            displayName: u.displayName,
-            avatarUrl: u.avatarUrl,
-            about: u.about,
-            isOnline: u.isOnline,
-            lastSeen: u.lastSeen,
-          });
-        }
-
-        setParticipants(participantMap);
+        setParticipants((prev) => {
+          const newMap = new Map(prev);
+          for (const u of users) {
+            newMap.set(u.uid, {
+              uid: u.uid,
+              displayName: u.displayName,
+              avatarUrl: u.avatarUrl,
+              about: u.about,
+              isOnline: u.isOnline,
+              lastSeen: u.lastSeen,
+            });
+          }
+          return newMap;
+        });
       } catch (err) {
         console.error('Error fetching participants:', err);
+        // Remove from fetched set so we can retry
+        for (const id of newParticipantIds) {
+          fetchedParticipantIdsRef.current.delete(id);
+        }
       }
     },
     [user?.uid]

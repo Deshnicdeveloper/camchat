@@ -1,6 +1,6 @@
 /**
- * Messages Service
- * Handles message-related Firestore operations
+ * Message Service
+ * Handles message operations in Firestore
  */
 
 import {
@@ -10,20 +10,24 @@ import {
   updateDoc,
   query,
   orderBy,
-  limit,
   onSnapshot,
   Unsubscribe,
+  writeBatch,
+  where,
+  getDocs,
+  limit,
   serverTimestamp,
   Timestamp,
   startAfter,
-  getDocs,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { COLLECTIONS, getServerTimestamp } from './firestore';
-import { updateChatLastMessage, incrementUnreadCount } from './chat';
-import type { Message, MessageType, ReplyReference } from '../types';
+import { updateChatLastMessage, incrementUnreadCount, resetUnreadCount } from './chat';
+import type { Message, MessageType, MessageStatus, ReplyReference, LocationData } from '../types';
 
-interface SendMessageData {
+interface SendMessageParams {
+  chatId: string;
+  senderId: string;
   type: MessageType;
   text?: string;
   mediaUrl?: string;
@@ -31,8 +35,9 @@ interface SendMessageData {
   audioDuration?: number;
   fileName?: string;
   fileSize?: number;
-  location?: { lat: number; lng: number; label: string };
+  location?: LocationData;
   replyTo?: ReplyReference;
+  participants: string[];
 }
 
 interface SendMessageResult {
@@ -44,10 +49,7 @@ interface SendMessageResult {
 /**
  * Convert Firestore document to Message type
  */
-function firestoreDocToMessage(
-  docId: string,
-  data: Record<string, unknown>
-): Message {
+function firestoreToMessage(docId: string, data: Record<string, unknown>): Message {
   return {
     id: docId,
     senderId: data.senderId as string,
@@ -58,86 +60,93 @@ function firestoreDocToMessage(
     audioDuration: data.audioDuration as number | undefined,
     fileName: data.fileName as string | undefined,
     fileSize: data.fileSize as number | undefined,
-    location: data.location as { lat: number; lng: number; label: string } | undefined,
+    location: data.location as LocationData | undefined,
     replyTo: data.replyTo as ReplyReference | undefined,
     reactions: (data.reactions as Record<string, string>) || {},
-    status: (data.status as Message['status']) || 'sent',
+    status: data.status as MessageStatus,
     readBy: (data.readBy as string[]) || [],
     deletedFor: (data.deletedFor as string[]) || [],
     isStarred: (data.isStarred as boolean) || false,
     timestamp:
       (data.timestamp as Timestamp)?.toDate?.() ||
-      (data.timestamp as { toDate?: () => Date })?.toDate?.() ||
+      (data.timestamp as Date) ||
       new Date(),
   };
 }
 
 /**
- * Send a message to a chat
+ * Send a new message
  */
-export async function sendMessage(
-  chatId: string,
-  senderId: string,
-  messageData: SendMessageData,
-  participants: string[]
-): Promise<SendMessageResult> {
+export async function sendMessage(params: SendMessageParams): Promise<SendMessageResult> {
+  const {
+    chatId,
+    senderId,
+    type,
+    text,
+    mediaUrl,
+    mediaThumbnail,
+    audioDuration,
+    fileName,
+    fileSize,
+    location,
+    replyTo,
+    participants,
+  } = params;
+
   try {
     const messagesRef = collection(db, COLLECTIONS.CHATS, chatId, 'messages');
 
     // Create message document
-    const newMessage = {
+    const messageData = {
       senderId,
-      type: messageData.type,
-      text: messageData.text || '',
-      mediaUrl: messageData.mediaUrl || null,
-      mediaThumbnail: messageData.mediaThumbnail || null,
-      audioDuration: messageData.audioDuration || null,
-      fileName: messageData.fileName || null,
-      fileSize: messageData.fileSize || null,
-      location: messageData.location || null,
-      replyTo: messageData.replyTo || null,
+      type,
+      text: text || '',
+      mediaUrl: mediaUrl || null,
+      mediaThumbnail: mediaThumbnail || null,
+      audioDuration: audioDuration || null,
+      fileName: fileName || null,
+      fileSize: fileSize || null,
+      location: location || null,
+      replyTo: replyTo || null,
       reactions: {},
-      status: 'sent',
-      readBy: [senderId],
+      status: 'sent' as MessageStatus,
+      readBy: [senderId], // Sender has read their own message
       deletedFor: [],
       isStarred: false,
       timestamp: getServerTimestamp(),
     };
 
-    const docRef = await addDoc(messagesRef, newMessage);
+    // Add message to subcollection
+    const docRef = await addDoc(messagesRef, messageData);
 
-    console.log('✅ Message sent:', docRef.id);
-
-    // Update chat's last message
-    const lastMessageText =
-      messageData.text ||
-      (messageData.type === 'image'
+    // Update chat's lastMessage
+    const lastMessageText = type === 'text'
+      ? (text || '')
+      : type === 'image'
         ? 'Photo'
-        : messageData.type === 'audio'
+        : type === 'audio'
         ? 'Voice message'
-        : messageData.type === 'video'
+        : type === 'video'
         ? 'Video'
-        : messageData.type === 'document'
+        : type === 'document'
         ? 'Document'
-        : messageData.type === 'location'
+        : type === 'location'
         ? 'Location'
-        : 'Message');
+        : 'Message';
 
     await updateChatLastMessage(chatId, {
       text: lastMessageText,
       senderId,
-      type: messageData.type,
+      type,
     });
 
     // Increment unread count for other participants
     await incrementUnreadCount(chatId, senderId, participants);
 
-    return {
-      success: true,
-      messageId: docRef.id,
-    };
+    console.log('✅ Message sent:', docRef.id);
+    return { success: true, messageId: docRef.id };
   } catch (error) {
-    console.error('Error sending message:', error);
+    console.error('❌ Error sending message:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send message',
@@ -146,32 +155,31 @@ export async function sendMessage(
 }
 
 /**
- * Subscribe to messages in a chat (real-time updates)
- * Returns an unsubscribe function
+ * Subscribe to messages in a chat (real-time)
  */
 export function subscribeToMessages(
   chatId: string,
+  currentUserId: string,
   callback: (messages: Message[]) => void,
-  messageLimit: number = 50,
   onError?: (error: Error) => void
 ): Unsubscribe {
   const messagesRef = collection(db, COLLECTIONS.CHATS, chatId, 'messages');
-  const q = query(
-    messagesRef,
-    orderBy('timestamp', 'desc'),
-    limit(messageLimit)
-  );
+  const q = query(messagesRef, orderBy('timestamp', 'asc'));
 
   return onSnapshot(
     q,
     (snapshot) => {
       const messages: Message[] = [];
+
       snapshot.forEach((doc) => {
-        messages.push(firestoreDocToMessage(doc.id, doc.data()));
+        const message = firestoreToMessage(doc.id, doc.data());
+        // Filter out messages deleted for this user
+        if (!message.deletedFor.includes(currentUserId)) {
+          messages.push(message);
+        }
       });
 
-      // Return in chronological order (oldest first, but we sort in UI anyway)
-      callback(messages.reverse());
+      callback(messages);
     },
     (error) => {
       console.error('Error in messages subscription:', error);
@@ -188,6 +196,7 @@ export function subscribeToMessages(
 export async function loadMoreMessages(
   chatId: string,
   lastMessageTimestamp: Date,
+  currentUserId: string,
   pageSize: number = 30
 ): Promise<{ messages: Message[]; hasMore: boolean }> {
   try {
@@ -203,7 +212,11 @@ export async function loadMoreMessages(
     const messages: Message[] = [];
 
     snapshot.forEach((doc) => {
-      messages.push(firestoreDocToMessage(doc.id, doc.data()));
+      const message = firestoreToMessage(doc.id, doc.data());
+      // Filter out messages deleted for this user
+      if (!message.deletedFor.includes(currentUserId)) {
+        messages.push(message);
+      }
     });
 
     const hasMore = messages.length > pageSize;
@@ -229,26 +242,64 @@ export async function loadMoreMessages(
  */
 export async function markMessagesAsRead(
   chatId: string,
-  messageIds: string[],
   userId: string
 ): Promise<void> {
   try {
-    const batch = [];
+    const messagesRef = collection(db, COLLECTIONS.CHATS, chatId, 'messages');
 
-    for (const messageId of messageIds) {
-      const messageRef = doc(db, COLLECTIONS.CHATS, chatId, 'messages', messageId);
-      batch.push(
-        updateDoc(messageRef, {
-          readBy: [...new Set([userId])], // Add user to readBy array
+    // Query unread messages (not sent by current user and not read by them)
+    const q = query(
+      messagesRef,
+      where('senderId', '!=', userId),
+      orderBy('senderId'),
+      orderBy('timestamp', 'desc'),
+      limit(100) // Batch limit
+    );
+
+    const snapshot = await getDocs(q);
+    const batch = writeBatch(db);
+    let updateCount = 0;
+
+    snapshot.forEach((docSnapshot) => {
+      const data = docSnapshot.data();
+      const readBy = (data.readBy as string[]) || [];
+
+      // Only update if user hasn't read it yet
+      if (!readBy.includes(userId)) {
+        const messageRef = doc(db, COLLECTIONS.CHATS, chatId, 'messages', docSnapshot.id);
+        batch.update(messageRef, {
+          readBy: [...readBy, userId],
           status: 'read',
-        })
-      );
+        });
+        updateCount++;
+      }
+    });
+
+    if (updateCount > 0) {
+      await batch.commit();
+      console.log(`✅ Marked ${updateCount} messages as read`);
     }
 
-    await Promise.all(batch);
-    console.log('✅ Messages marked as read:', messageIds.length);
+    // Reset unread count for this user
+    await resetUnreadCount(chatId, userId);
   } catch (error) {
     console.error('Error marking messages as read:', error);
+  }
+}
+
+/**
+ * Update message status
+ */
+export async function updateMessageStatus(
+  chatId: string,
+  messageId: string,
+  status: MessageStatus
+): Promise<void> {
+  try {
+    const messageRef = doc(db, COLLECTIONS.CHATS, chatId, 'messages', messageId);
+    await updateDoc(messageRef, { status });
+  } catch (error) {
+    console.error('Error updating message status:', error);
   }
 }
 
@@ -266,7 +317,7 @@ export async function addReaction(
     await updateDoc(messageRef, {
       [`reactions.${userId}`]: emoji,
     });
-    console.log('✅ Reaction added');
+    console.log('✅ Reaction added:', emoji);
   } catch (error) {
     console.error('Error adding reaction:', error);
     throw error;
@@ -283,14 +334,31 @@ export async function removeReaction(
 ): Promise<void> {
   try {
     const messageRef = doc(db, COLLECTIONS.CHATS, chatId, 'messages', messageId);
-    // To remove a field, we need to get the current reactions and filter out the user's
-    // For simplicity, set it to null
+    // Use dot notation to delete the specific reaction
     await updateDoc(messageRef, {
       [`reactions.${userId}`]: null,
     });
     console.log('✅ Reaction removed');
   } catch (error) {
     console.error('Error removing reaction:', error);
+    throw error;
+  }
+}
+
+/**
+ * Toggle star on a message
+ */
+export async function toggleStarMessage(
+  chatId: string,
+  messageId: string,
+  isStarred: boolean
+): Promise<void> {
+  try {
+    const messageRef = doc(db, COLLECTIONS.CHATS, chatId, 'messages', messageId);
+    await updateDoc(messageRef, { isStarred });
+    console.log('✅ Message star toggled:', isStarred);
+  } catch (error) {
+    console.error('Error toggling message star:', error);
     throw error;
   }
 }
@@ -318,21 +386,40 @@ export async function deleteMessageForUser(
 }
 
 /**
- * Star/unstar a message
+ * Update typing indicator
  */
-export async function toggleMessageStar(
+export async function updateTypingStatus(
   chatId: string,
-  messageId: string,
-  isStarred: boolean
+  userId: string,
+  isTyping: boolean
 ): Promise<void> {
   try {
-    const messageRef = doc(db, COLLECTIONS.CHATS, chatId, 'messages', messageId);
-    await updateDoc(messageRef, {
-      isStarred,
+    const chatRef = doc(db, COLLECTIONS.CHATS, chatId);
+    await updateDoc(chatRef, {
+      [`isTyping.${userId}`]: isTyping,
     });
-    console.log('✅ Message star toggled');
   } catch (error) {
-    console.error('Error toggling star:', error);
-    throw error;
+    console.error('Error updating typing status:', error);
   }
+}
+
+/**
+ * Subscribe to typing indicator changes
+ */
+export function subscribeToTypingIndicator(
+  chatId: string,
+  currentUserId: string,
+  callback: (typingUsers: string[]) => void
+): Unsubscribe {
+  const chatRef = doc(db, COLLECTIONS.CHATS, chatId);
+
+  return onSnapshot(chatRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const isTyping = (snapshot.data().isTyping as Record<string, boolean>) || {};
+      const typingUsers = Object.entries(isTyping)
+        .filter(([id, typing]) => id !== currentUserId && typing)
+        .map(([id]) => id);
+      callback(typingUsers);
+    }
+  });
 }

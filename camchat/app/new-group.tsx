@@ -26,7 +26,7 @@ import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
 import { syncContacts } from '../lib/contacts';
 import { createGroupChat } from '../lib/chat';
-import { uploadAvatar } from '../lib/storage';
+import { uploadAvatarFromUri } from '../lib/storage';
 import type { Contact } from '../types';
 
 type Step = 'participants' | 'info';
@@ -161,7 +161,7 @@ export default function NewGroupScreen() {
       // Upload avatar if selected
       let groupAvatarUrl: string | undefined;
       if (groupAvatarUri) {
-        const uploadResult = await uploadAvatar(groupAvatarUri, `group_${Date.now()}`);
+        const uploadResult = await uploadAvatarFromUri(`group_${Date.now()}`, groupAvatarUri);
         if (uploadResult.success && uploadResult.url) {
           groupAvatarUrl = uploadResult.url;
         }
