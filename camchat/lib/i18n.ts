@@ -169,6 +169,35 @@ const translations = {
       refresh: 'Refresh',
     },
 
+    // Messages
+    messages: {
+      noMessages: 'No messages yet',
+      startConversation: 'Send a message to start the conversation',
+      reply: 'Reply',
+      star: 'Star',
+      unstar: 'Unstar',
+      copy: 'Copy',
+      copied: 'Message copied',
+      deleteMessage: 'Delete Message',
+      deleteConfirm: 'Are you sure you want to delete this message?',
+    },
+
+    // Attachments
+    attachments: {
+      title: 'Share',
+      camera: 'Camera',
+      gallery: 'Gallery',
+      document: 'Document',
+      location: 'Location',
+    },
+
+    // Images
+    images: {
+      permissionRequired: 'Permission to save images is required.',
+      savedToGallery: 'Image saved to gallery',
+      downloadFailed: 'Failed to download image',
+    },
+
     // Time
     time: {
       today: 'Today',
@@ -340,6 +369,35 @@ const translations = {
       tryDifferentSearch: 'Essayez un autre terme de recherche',
       inviteFriends: 'Invitez des amis à rejoindre CamChat',
       refresh: 'Actualiser',
+    },
+
+    // Messages
+    messages: {
+      noMessages: 'Pas encore de messages',
+      startConversation: 'Envoyez un message pour commencer la conversation',
+      reply: 'Répondre',
+      star: 'Favoris',
+      unstar: 'Retirer des favoris',
+      copy: 'Copier',
+      copied: 'Message copié',
+      deleteMessage: 'Supprimer le message',
+      deleteConfirm: 'Êtes-vous sûr de vouloir supprimer ce message ?',
+    },
+
+    // Attachments
+    attachments: {
+      title: 'Partager',
+      camera: 'Caméra',
+      gallery: 'Galerie',
+      document: 'Document',
+      location: 'Position',
+    },
+
+    // Images
+    images: {
+      permissionRequired: 'Permission de sauvegarder les images requise.',
+      savedToGallery: 'Image enregistrée dans la galerie',
+      downloadFailed: 'Échec du téléchargement de l\'image',
     },
 
     // Time
