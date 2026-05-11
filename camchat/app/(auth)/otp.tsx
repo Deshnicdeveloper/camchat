@@ -13,21 +13,32 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useRef, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, Radius } from '../../constants';
 import { t } from '../../lib/i18n';
+import { useAuth } from '../../hooks/useAuth';
 
 const OTP_LENGTH = 6;
 const RESEND_TIMEOUT = 60;
 
 export default function OTPScreen() {
+  const { phone } = useLocalSearchParams<{ phone: string }>();
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [resendTimer, setResendTimer] = useState(RESEND_TIMEOUT);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const inputRefs = useRef<TextInput[]>([]);
+
+  const { verifyCode, sendVerificationCode, phoneNumber } = useAuth();
+
+  // Get the phone number from params or auth store
+  const displayPhone = phone || phoneNumber || '+237 XXX XXX XXX';
 
   useEffect(() => {
     // Start countdown timer
@@ -71,18 +82,60 @@ export default function OTPScreen() {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const otpCode = otp.join('');
-    if (otpCode.length === OTP_LENGTH) {
-      // Navigate to profile setup
-      router.push('/(auth)/profile-setup');
+    if (otpCode.length !== OTP_LENGTH) return;
+
+    setIsVerifying(true);
+
+    const result = await verifyCode(otpCode);
+
+    setIsVerifying(false);
+
+    if (result.success) {
+      if (result.isNewUser) {
+        // New user - navigate to profile setup
+        router.push('/(auth)/profile-setup');
+      } else {
+        // Existing user - navigate to main app
+        router.replace('/(tabs)/chats');
+      }
+    } else {
+      Alert.alert(
+        t('common.error'),
+        result.error || t('auth.invalidCode'),
+        [{ text: t('common.ok') }]
+      );
+      // Clear the OTP inputs on error
+      setOtp(Array(OTP_LENGTH).fill(''));
+      inputRefs.current[0]?.focus();
     }
   };
 
-  const handleResend = () => {
-    if (resendTimer === 0) {
+  const handleResend = async () => {
+    if (resendTimer > 0 || isResending) return;
+
+    const phoneToResend = phone || phoneNumber;
+    if (!phoneToResend) {
+      Alert.alert(t('common.error'), t('auth.noPhoneNumber'));
+      return;
+    }
+
+    setIsResending(true);
+
+    const result = await sendVerificationCode(phoneToResend);
+
+    setIsResending(false);
+
+    if (result.success) {
       setResendTimer(RESEND_TIMEOUT);
-      // TODO: Implement resend OTP logic
+      Alert.alert(t('common.success'), t('auth.codeSent'));
+    } else {
+      Alert.alert(
+        t('common.error'),
+        result.error || t('auth.sendOtpError'),
+        [{ text: t('common.ok') }]
+      );
     }
   };
 
@@ -108,7 +161,7 @@ export default function OTPScreen() {
             <View style={styles.content}>
               <Text style={styles.title}>{t('auth.otpTitle')}</Text>
               <Text style={styles.subtitle}>
-                {t('auth.otpSubtitle')} +237 6XX XXX XXX
+                {t('auth.otpSubtitle')} {displayPhone}
               </Text>
 
               {/* OTP Inputs */}
@@ -139,6 +192,8 @@ export default function OTPScreen() {
                   <Text style={styles.resendTimer}>
                     {t('auth.resendIn')} {resendTimer}s
                   </Text>
+                ) : isResending ? (
+                  <ActivityIndicator color={Colors.textInverse} size="small" />
                 ) : (
                   <Pressable onPress={handleResend}>
                     <Text style={styles.resendLink}>{t('auth.resendCode')}</Text>
@@ -150,13 +205,17 @@ export default function OTPScreen() {
             {/* Verify Button */}
             <View style={styles.footer}>
               <Pressable
-                style={[styles.button, !isComplete && styles.buttonDisabled]}
+                style={[styles.button, (!isComplete || isVerifying) && styles.buttonDisabled]}
                 onPress={handleVerify}
-                disabled={!isComplete}
+                disabled={!isComplete || isVerifying}
               >
-                <Text style={[styles.buttonText, !isComplete && styles.buttonTextDisabled]}>
-                  {t('auth.continue')}
-                </Text>
+                {isVerifying ? (
+                  <ActivityIndicator color={Colors.primary} />
+                ) : (
+                  <Text style={[styles.buttonText, !isComplete && styles.buttonTextDisabled]}>
+                    {t('auth.continue')}
+                  </Text>
+                )}
               </Pressable>
             </View>
           </View>

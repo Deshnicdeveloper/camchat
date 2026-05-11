@@ -19,6 +19,7 @@ const translations = {
     common: {
       loading: 'Loading...',
       error: 'Something went wrong',
+      success: 'Success',
       retry: 'Retry',
       cancel: 'Cancel',
       save: 'Save',
@@ -63,6 +64,13 @@ const translations = {
       displayName: 'Your name',
       about: 'About',
       defaultAbout: 'Hey, I\'m on CamChat',
+      // Error messages
+      sendOtpError: 'Failed to send verification code. Please try again.',
+      invalidCode: 'Invalid verification code. Please try again.',
+      noPhoneNumber: 'Phone number not found. Please go back and enter your number.',
+      codeSent: 'Verification code sent successfully.',
+      photoPermissionRequired: 'Permission to access photos is required.',
+      profileSetupError: 'Failed to create profile. Please try again.',
     },
 
     // Chats
@@ -167,6 +175,7 @@ const translations = {
     common: {
       loading: 'Chargement...',
       error: 'Une erreur s\'est produite',
+      success: 'Succès',
       retry: 'Réessayer',
       cancel: 'Annuler',
       save: 'Enregistrer',
@@ -211,6 +220,13 @@ const translations = {
       displayName: 'Votre nom',
       about: 'À propos',
       defaultAbout: 'Salut, je suis sur CamChat',
+      // Error messages
+      sendOtpError: 'Échec de l\'envoi du code. Veuillez réessayer.',
+      invalidCode: 'Code de vérification invalide. Veuillez réessayer.',
+      noPhoneNumber: 'Numéro de téléphone introuvable. Veuillez revenir en arrière.',
+      codeSent: 'Code de vérification envoyé avec succès.',
+      photoPermissionRequired: 'Permission d\'accès aux photos requise.',
+      profileSetupError: 'Échec de la création du profil. Veuillez réessayer.',
     },
 
     // Chats
