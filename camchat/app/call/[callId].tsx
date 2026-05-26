@@ -128,7 +128,7 @@ export default function CallScreen() {
     };
 
     loadCallData();
-  }, [callId, isIncomingCall, setActiveCall, setRemoteUser, joinCall]);
+  }, [callId, isIncomingCall, setActiveCall, setRemoteUser]);
 
   // Handle back button
   useEffect(() => {

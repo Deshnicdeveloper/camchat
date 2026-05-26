@@ -70,7 +70,15 @@ interface UseCallReturn {
 }
 
 export function useCall(options: UseCallOptions = {}): UseCallReturn {
-  const { onCallEnded, onRemoteUserJoined, onRemoteUserLeft, onError } = options;
+  // Use refs for callbacks to avoid re-triggering effects
+  const onCallEndedRef = useRef(options.onCallEnded);
+  const onRemoteUserJoinedRef = useRef(options.onRemoteUserJoined);
+  const onRemoteUserLeftRef = useRef(options.onRemoteUserLeft);
+  const onErrorRef = useRef(options.onError);
+  useEffect(() => { onCallEndedRef.current = options.onCallEnded; });
+  useEffect(() => { onRemoteUserJoinedRef.current = options.onRemoteUserJoined; });
+  useEffect(() => { onRemoteUserLeftRef.current = options.onRemoteUserLeft; });
+  useEffect(() => { onErrorRef.current = options.onError; });
 
   // Agora engine ref
   const engineRef = useRef<import('react-native-agora').IRtcEngine | null>(null);
@@ -80,6 +88,11 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
 
   // Duration timer
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const callStartTimeRef = useRef<number>(0);
+
+  // Ref for isConnected to avoid stale closures
+  const isConnectedRef = useRef(isConnected);
+  isConnectedRef.current = isConnected;
 
   // State
   const [isAgoraAvailable, setIsAgoraAvailable] = useState(false);
@@ -153,7 +166,7 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
    */
   const initializeEngine = useCallback(async (isVideo: boolean): Promise<boolean> => {
     if (!isAgoraAvailable || !AgoraModule) {
-      onError?.('Agora is not available. Please use a development build instead of Expo Go.');
+      onErrorRef.current?.('Agora is not available. Please use a development build instead of Expo Go.');
       return false;
     }
 
@@ -199,18 +212,18 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
         onUserJoined: (connection, uid, elapsed) => {
           console.log('👤 Remote user joined:', uid);
           setRemoteUid(uid);
-          onRemoteUserJoined?.(uid);
+          onRemoteUserJoinedRef.current?.(uid);
         },
 
         onUserOffline: (connection, uid, reason) => {
           console.log('👤 Remote user left:', uid, 'reason:', reason);
           setRemoteUid(null);
-          onRemoteUserLeft?.(uid);
+          onRemoteUserLeftRef.current?.(uid);
         },
 
         onError: (err, msg) => {
           console.error('❌ Agora error:', err, msg);
-          onError?.(msg);
+          onErrorRef.current?.(msg);
         },
 
         onNetworkQuality: (connection, uid, txQuality, rxQuality) => {
@@ -224,7 +237,7 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
 
         onConnectionLost: () => {
           console.warn('⚠️ Connection lost');
-          onError?.('Connection lost');
+          onErrorRef.current?.('Connection lost');
         },
 
         onConnectionStateChanged: (connection, state, reason) => {
@@ -248,10 +261,10 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       return true;
     } catch (error) {
       console.error('❌ Failed to initialize Agora:', error);
-      onError?.(error instanceof Error ? error.message : 'Failed to initialize call');
+      onErrorRef.current?.(error instanceof Error ? error.message : 'Failed to initialize call');
       return false;
     }
-  }, [isAgoraAvailable, requestPermissions, onRemoteUserJoined, onRemoteUserLeft, onError]);
+  }, [isAgoraAvailable, requestPermissions]);
 
   /**
    * Cleanup Agora engine
@@ -300,7 +313,7 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       // Get receiver profile
       const receiverProfile = await getUserProfile(receiverId);
       if (!receiverProfile) {
-        onError?.('Could not find user');
+        onErrorRef.current?.('Could not find user');
         setIsConnecting(false);
         return null;
       }
@@ -314,7 +327,7 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       );
 
       if (!result.success || !result.call) {
-        onError?.(result.error || 'Failed to create call');
+        onErrorRef.current?.(result.error || 'Failed to create call');
         setIsConnecting(false);
         return null;
       }
@@ -329,7 +342,7 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       statusUnsubscribeRef.current = subscribeToCallStatus(call.id, (updatedCall) => {
         setActiveCall(updatedCall);
 
-        if (updatedCall.status === 'ongoing' && !isConnected) {
+        if (updatedCall.status === 'ongoing' && !isConnectedRef.current) {
           // Remote user accepted, join the channel
           joinChannel(updatedCall);
         } else if (['ended', 'declined', 'missed'].includes(updatedCall.status)) {
@@ -344,11 +357,11 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       return call;
     } catch (error) {
       console.error('Error initiating call:', error);
-      onError?.(error instanceof Error ? error.message : 'Failed to initiate call');
+      onErrorRef.current?.(error instanceof Error ? error.message : 'Failed to initiate call');
       setIsConnecting(false);
       return null;
     }
-  }, [isAgoraAvailable, initializeEngine, setActiveCall, setRemoteUser, isConnected, onError]);
+  }, [isAgoraAvailable, initializeEngine, setActiveCall, setRemoteUser]);
 
   /**
    * Join an existing call (for receiver)
@@ -375,7 +388,7 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       // Accept the call in Firestore
       const result = await acceptCall(call.id);
       if (!result.success) {
-        onError?.(result.error || 'Failed to accept call');
+        onErrorRef.current?.(result.error || 'Failed to accept call');
         setIsConnecting(false);
         return false;
       }
@@ -398,11 +411,11 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       return true;
     } catch (error) {
       console.error('Error joining call:', error);
-      onError?.(error instanceof Error ? error.message : 'Failed to join call');
+      onErrorRef.current?.(error instanceof Error ? error.message : 'Failed to join call');
       setIsConnecting(false);
       return false;
     }
-  }, [isAgoraAvailable, initializeEngine, setActiveCall, onError]);
+  }, [isAgoraAvailable, initializeEngine, setActiveCall]);
 
   /**
    * Join Agora channel
@@ -432,9 +445,9 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       );
     } catch (error) {
       console.error('Error joining channel:', error);
-      onError?.(error instanceof Error ? error.message : 'Failed to join channel');
+      onErrorRef.current?.(error instanceof Error ? error.message : 'Failed to join channel');
     }
-  }, [onError]);
+  }, []);
 
   /**
    * Leave the current call
@@ -467,11 +480,11 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
       resetCall();
 
       // Notify callback
-      onCallEnded?.();
+      onCallEndedRef.current?.();
     } catch (error) {
       console.error('Error leaving call:', error);
     }
-  }, [activeCall, cleanupEngine, resetCall, onCallEnded]);
+  }, [activeCall, cleanupEngine, resetCall]);
 
   /**
    * Handle call ended (from remote)
@@ -498,8 +511,8 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
     resetCall();
 
     // Notify callback
-    onCallEnded?.();
-  }, [cleanupEngine, resetCall, onCallEnded]);
+    onCallEndedRef.current?.();
+  }, [cleanupEngine, resetCall]);
 
   /**
    * Toggle mute
@@ -552,18 +565,24 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
    */
   useEffect(() => {
     if (isConnected && activeCall?.status === 'ongoing') {
-      // Start timer
-      durationTimerRef.current = setInterval(() => {
-        setCallDuration(callDuration + 1);
-      }, 1000);
+      // Record start time and compute elapsed every second
+      const startTime = Date.now();
+      callStartTimeRef.current = startTime;
+
+      const tick = () => {
+        setCallDuration(Math.floor((Date.now() - startTime) / 1000));
+      };
+      tick(); // immediate first tick
+      durationTimerRef.current = setInterval(tick, 1000);
 
       return () => {
         if (durationTimerRef.current) {
           clearInterval(durationTimerRef.current);
+          durationTimerRef.current = null;
         }
       };
     }
-  }, [isConnected, activeCall?.status, callDuration, setCallDuration]);
+  }, [isConnected, activeCall?.status, setCallDuration]);
 
   /**
    * Cleanup on unmount
