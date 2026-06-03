@@ -31,6 +31,7 @@ export async function uploadFileFromUri(
 ): Promise<UploadResult> {
   try {
     console.log(`📤 Uploading file to ${bucket}/${path}`);
+    console.log(`📋 Content-Type: ${contentType}, URI: ${fileUri.substring(0, 60)}...`);
 
     // Read the file as base64
     const base64 = await FileSystem.readAsStringAsync(fileUri, {
@@ -39,6 +40,7 @@ export async function uploadFileFromUri(
 
     // Convert base64 to ArrayBuffer
     const arrayBuffer = decode(base64);
+    console.log(`📦 ArrayBuffer size: ${arrayBuffer.byteLength} bytes`);
 
     // Upload to Supabase
     const { data, error } = await supabase.storage
@@ -49,10 +51,16 @@ export async function uploadFileFromUri(
       });
 
     if (error) {
-      console.error('❌ Upload error:', error);
+      console.error('❌ Upload error:', JSON.stringify(error, null, 2));
       let errorMessage = error.message;
-      if (error.message.includes('schema') || error.message.includes('invalid') || error.message.includes('incompatible')) {
-        errorMessage = `Storage bucket "${bucket}" not configured. Go to Supabase Dashboard > Storage and create this bucket, or run ensureStorageBuckets().`;
+
+      // Check for schema/migration issues
+      if (error.message?.includes('schema') || error.message?.includes('invalid') || error.message?.includes('incompatible')) {
+        console.error('💡 This error usually means the Supabase Storage schema needs to be migrated.');
+        console.error('   Go to Supabase Dashboard > SQL Editor and run:');
+        console.error('   ALTER DATABASE postgres SET "app.settings.storage_schema_version" TO "2";');
+        console.error('   Or upgrade your Supabase project to the latest version.');
+        errorMessage = `Storage schema error. Your Supabase project may need a storage migration. Go to Supabase Dashboard > SQL Editor and check for pending migrations, or upgrade your project.`;
       }
       return { success: false, error: errorMessage };
     }

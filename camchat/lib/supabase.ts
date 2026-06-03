@@ -110,6 +110,8 @@ export async function ensureStorageBuckets(): Promise<void> {
 
     if (listError) {
       console.warn('⚠️ Could not list storage buckets:', listError.message);
+      console.warn('💡 This may indicate a storage schema issue in your Supabase project.');
+      console.warn('   Go to Supabase Dashboard > Settings > Infrastructure to check for pending migrations.');
       return;
     }
 
@@ -133,6 +135,68 @@ export async function ensureStorageBuckets(): Promise<void> {
   } catch (error) {
     console.warn('⚠️ Error ensuring storage buckets:', error);
   }
+}
+
+/**
+ * Diagnostic function to check Supabase storage health.
+ * Call this to debug storage issues.
+ */
+export async function diagnoseStorage(): Promise<{
+  canConnect: boolean;
+  bucketsExist: boolean;
+  canUpload: boolean;
+  errors: string[];
+}> {
+  const errors: string[] = [];
+  let canConnect = false;
+  let bucketsExist = false;
+  let canUpload = false;
+
+  // Test 1: Can we list buckets?
+  try {
+    const { data, error } = await supabase.storage.listBuckets();
+    if (error) {
+      errors.push(`listBuckets failed: ${error.message}`);
+    } else {
+      canConnect = true;
+      const names = (data || []).map((b) => b.name);
+      console.log('📦 Existing buckets:', names);
+
+      const required = Object.values(STORAGE_BUCKETS);
+      const missing = required.filter((b) => !names.includes(b));
+      if (missing.length > 0) {
+        errors.push(`Missing buckets: ${missing.join(', ')}`);
+      } else {
+        bucketsExist = true;
+      }
+    }
+  } catch (e) {
+    errors.push(`Connection failed: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  // Test 2: Can we upload a tiny test file?
+  if (bucketsExist) {
+    try {
+      const testBlob = new Blob(['test'], { type: 'text/plain' });
+      const { error } = await supabase.storage
+        .from(STORAGE_BUCKETS.VOICE_NOTES)
+        .upload('__health_check__.txt', testBlob, { upsert: true });
+
+      if (error) {
+        errors.push(`Upload test failed: ${error.message}`);
+      } else {
+        canUpload = true;
+        // Clean up
+        await supabase.storage.from(STORAGE_BUCKETS.VOICE_NOTES).remove(['__health_check__.txt']);
+      }
+    } catch (e) {
+      errors.push(`Upload test exception: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  const result = { canConnect, bucketsExist, canUpload, errors };
+  console.log('🔍 Storage diagnosis:', result);
+  return result;
 }
 
 export default supabase;
