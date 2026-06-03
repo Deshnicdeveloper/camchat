@@ -3,7 +3,7 @@
  * Full-screen status/story viewer with auto-advance and navigation
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Colors, Typography, Spacing, Radius } from '../../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../../constants';
+import { useColors } from '../../../hooks/useColors';
 import { t } from '../../../lib/i18n';
 import { useStatus } from '../../../hooks/useStatus';
 import { useAuthStore } from '../../../store/authStore';
@@ -35,6 +36,8 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const STATUS_DURATION = 5000; // 5 seconds per status
 
 export default function StatusViewScreen() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const { user } = useAuthStore();
@@ -222,7 +225,7 @@ export default function StatusViewScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.textInverse} />
+          <ActivityIndicator size="large" color={colors.textInverse} />
         </View>
       </SafeAreaView>
     );
@@ -251,7 +254,7 @@ export default function StatusViewScreen() {
           <View
             style={[
               styles.textContent,
-              { backgroundColor: currentStatus.backgroundColor || Colors.primary },
+              { backgroundColor: currentStatus.backgroundColor || colors.primary },
             ]}
           >
             <Text style={styles.statusText}>{currentStatus.text}</Text>
@@ -303,7 +306,7 @@ export default function StatusViewScreen() {
             />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Ionicons name="person" size={20} color={Colors.textSecondary} />
+              <Ionicons name="person" size={20} color={colors.textSecondary} />
             </View>
           )}
           <View style={styles.userTextInfo}>
@@ -319,14 +322,14 @@ export default function StatusViewScreen() {
         <View style={styles.headerActions}>
           {isOwnStatus && (
             <View style={styles.viewCount}>
-              <Ionicons name="eye-outline" size={18} color={Colors.textInverse} />
+              <Ionicons name="eye-outline" size={18} color={colors.textInverse} />
               <Text style={styles.viewCountText}>
                 {currentStatus.viewedBy.length}
               </Text>
             </View>
           )}
           <Pressable onPress={handleClose} style={styles.closeIcon}>
-            <Ionicons name="close" size={28} color={Colors.textInverse} />
+            <Ionicons name="close" size={28} color={colors.textInverse} />
           </Pressable>
         </View>
       </View>
@@ -362,9 +365,9 @@ export default function StatusViewScreen() {
                 disabled={isSendingReply}
               >
                 {isSendingReply ? (
-                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
-                  <Ionicons name="send" size={20} color={Colors.primary} />
+                  <Ionicons name="send" size={20} color={colors.primary} />
                 )}
               </Pressable>
             )}
@@ -383,7 +386,7 @@ export default function StatusViewScreen() {
             );
           }}
         >
-          <Ionicons name="chevron-up" size={24} color={Colors.textInverse} />
+          <Ionicons name="chevron-up" size={24} color={colors.textInverse} />
           <Text style={styles.viewListText}>
             {currentStatus.viewedBy.length} {t('status.views')}
           </Text>
@@ -393,10 +396,11 @@ export default function StatusViewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.textPrimary,
+    backgroundColor: colors.textPrimary,
   },
   loadingContainer: {
     flex: 1,
@@ -412,19 +416,19 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.lg,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     marginBottom: Spacing.lg,
   },
   closeButton: {
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: Radius.full,
   },
   closeButtonText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.base,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
 
   // Header
@@ -450,7 +454,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.sm,
@@ -461,7 +465,7 @@ const styles = StyleSheet.create({
   userName: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.base,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   timeAgo: {
     fontFamily: Typography.fontFamily.regular,
@@ -481,7 +485,7 @@ const styles = StyleSheet.create({
   viewCountText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.sm,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   closeIcon: {
     padding: Spacing.xs,
@@ -503,7 +507,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.xxl,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     textAlign: 'center',
   },
   mediaContent: {
@@ -526,7 +530,7 @@ const styles = StyleSheet.create({
   captionText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.base,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     textAlign: 'center',
   },
 
@@ -548,14 +552,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.base,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     paddingVertical: Spacing.md,
   },
   sendButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.textInverse,
+    backgroundColor: colors.textInverse,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -571,6 +575,6 @@ const styles = StyleSheet.create({
   viewListText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.sm,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
 });

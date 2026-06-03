@@ -17,7 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Colors, Typography, Spacing, Radius } from '../../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../../constants';
+import { useColors } from '../../../hooks/useColors';
 import { t } from '../../../lib/i18n';
 import { useStatus } from '../../../hooks/useStatus';
 import { useAuthStore } from '../../../store/authStore';
@@ -26,6 +27,8 @@ import { formatStatusTime } from '../../../utils/formatTime';
 import type { StatusGroup } from '../../../types';
 
 export default function StatusScreen() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const { user } = useAuthStore();
   const {
@@ -77,7 +80,7 @@ export default function StatusScreen() {
             <View
               style={[
                 styles.textStatusPreview,
-                { backgroundColor: latestMyStatus.backgroundColor || Colors.primary },
+                { backgroundColor: latestMyStatus.backgroundColor || colors.primary },
               ]}
             >
               <Text style={styles.textStatusText} numberOfLines={2}>
@@ -104,10 +107,10 @@ export default function StatusScreen() {
           ) : (
             // Show placeholder with add button
             <View style={styles.avatarPlaceholder}>
-              <Ionicons name="person" size={32} color={Colors.textSecondary} />
+              <Ionicons name="person" size={32} color={colors.textSecondary} />
               {!hasMyStatus && (
                 <View style={styles.addBadge}>
-                  <Ionicons name="add" size={14} color={Colors.textInverse} />
+                  <Ionicons name="add" size={14} color={colors.textInverse} />
                 </View>
               )}
             </View>
@@ -126,7 +129,7 @@ export default function StatusScreen() {
         {/* View count for own statuses */}
         {hasMyStatus && (
           <View style={styles.viewCount}>
-            <Ionicons name="eye-outline" size={18} color={Colors.textSecondary} />
+            <Ionicons name="eye-outline" size={18} color={colors.textSecondary} />
             <Text style={styles.viewCountText}>
               {latestMyStatus?.viewedBy.length || 0}
             </Text>
@@ -176,7 +179,7 @@ export default function StatusScreen() {
     () =>
       !isLoading && contactStatuses.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="radio-outline" size={64} color={Colors.primaryFaded} />
+          <Ionicons name="radio-outline" size={64} color={colors.primaryFaded} />
           <Text style={styles.emptyText}>{t('status.noStatus')}</Text>
         </View>
       ) : null,
@@ -191,11 +194,11 @@ export default function StatusScreen() {
         <View style={styles.headerActions}>
           {/* Camera button (media status) */}
           <Pressable onPress={handleCameraPress} style={styles.headerButton}>
-            <Ionicons name="camera-outline" size={24} color={Colors.textInverse} />
+            <Ionicons name="camera-outline" size={24} color={colors.textInverse} />
           </Pressable>
           {/* Pen button (text status) */}
           <Pressable onPress={handleTextPress} style={styles.headerButton}>
-            <Ionicons name="pencil-outline" size={22} color={Colors.textInverse} />
+            <Ionicons name="pencil-outline" size={22} color={colors.textInverse} />
           </Pressable>
         </View>
       </View>
@@ -204,7 +207,7 @@ export default function StatusScreen() {
       <View style={styles.content}>
         {isLoading && contactStatuses.length === 0 ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
           <FlatList
@@ -219,8 +222,8 @@ export default function StatusScreen() {
               <RefreshControl
                 refreshing={isLoading}
                 onRefresh={refreshStatuses}
-                colors={[Colors.primary]}
-                tintColor={Colors.primary}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
               />
             }
           />
@@ -230,10 +233,11 @@ export default function StatusScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   header: {
     flexDirection: 'row',
@@ -241,12 +245,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   headerTitle: {
     fontFamily: Typography.fontFamily.bold,
     fontSize: Typography.size.xl,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   headerActions: {
     flexDirection: 'row',
@@ -258,7 +262,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   listContent: {
     flexGrow: 1,
@@ -274,9 +278,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.lg,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   myStatusAvatar: {
     width: 64,
@@ -288,7 +292,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -299,11 +303,11 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.background,
+    borderColor: colors.background,
   },
   textStatusPreview: {
     width: 60,
@@ -313,12 +317,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.xs,
     borderWidth: 2.5,
-    borderColor: Colors.primary,
+    borderColor: colors.primary,
   },
   textStatusText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.xs,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     textAlign: 'center',
   },
   myStatusInfo: {
@@ -328,12 +332,12 @@ const styles = StyleSheet.create({
   myStatusTitle: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   myStatusSubtitle: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   viewCount: {
@@ -344,19 +348,19 @@ const styles = StyleSheet.create({
   viewCountText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 
   // Section Header
   sectionHeader: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
   sectionTitle: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -372,7 +376,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.base,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.lg,
   },

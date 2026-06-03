@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 /**
  * Calls Screen
  * Displays call log history with ability to call back
@@ -18,7 +19,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { format, isToday, isYesterday, isThisWeek } from 'date-fns';
-import { Colors, Typography, Spacing, Radius } from '../../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../../constants';
+import { useColors } from '../../../hooks/useColors';
 import { t } from '../../../lib/i18n';
 import { formatCallDuration, createCall } from '../../../lib/calls';
 import { useCallHistory } from '../../../hooks/useCallHistory';
@@ -50,6 +52,8 @@ function CallLogItem({
   currentUserId: string;
   onCallBack: (userId: string, type: CallType) => void;
 }) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isOutgoing = callLog.callerId === currentUserId;
   const isMissed = callLog.status === 'missed';
   const isDeclined = callLog.status === 'declined';
@@ -71,9 +75,9 @@ function CallLogItem({
   // Determine status color
   const statusColor = useMemo(() => {
     if (isMissed || isDeclined) {
-      return Colors.error;
+      return colors.error;
     }
-    return Colors.textSecondary;
+    return colors.textSecondary;
   }, [isMissed, isDeclined]);
 
   // Format duration or status
@@ -101,7 +105,7 @@ function CallLogItem({
           />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Ionicons name="person" size={24} color={Colors.textSecondary} />
+            <Ionicons name="person" size={24} color={colors.textSecondary} />
           </View>
         )}
       </View>
@@ -132,7 +136,7 @@ function CallLogItem({
           <Ionicons
             name={callLog.type === 'video' ? 'videocam' : 'call'}
             size={20}
-            color={Colors.primary}
+            color={colors.primary}
           />
         </Pressable>
       </View>
@@ -141,6 +145,8 @@ function CallLogItem({
 }
 
 export default function CallsScreen() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { user } = useAuthStore();
   const { setActiveCall, setRemoteUser } = useCallStore();
   const { callLogs, isLoading, error, refresh } = useCallHistory();
@@ -198,15 +204,15 @@ export default function CallsScreen() {
           <Text style={styles.headerTitle}>{t('calls.title')}</Text>
           <View style={styles.headerActions}>
             <Pressable style={styles.headerButton}>
-              <Ionicons name="search-outline" size={24} color={Colors.textInverse} />
+              <Ionicons name="search-outline" size={24} color={colors.textInverse} />
             </Pressable>
             <Pressable style={styles.headerButton} onPress={handleNewCall}>
-              <Ionicons name="call-outline" size={24} color={Colors.textInverse} />
+              <Ionicons name="call-outline" size={24} color={colors.textInverse} />
             </Pressable>
           </View>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
@@ -220,15 +226,15 @@ export default function CallsScreen() {
           <Text style={styles.headerTitle}>{t('calls.title')}</Text>
           <View style={styles.headerActions}>
             <Pressable style={styles.headerButton}>
-              <Ionicons name="search-outline" size={24} color={Colors.textInverse} />
+              <Ionicons name="search-outline" size={24} color={colors.textInverse} />
             </Pressable>
             <Pressable style={styles.headerButton} onPress={handleNewCall}>
-              <Ionicons name="call-outline" size={24} color={Colors.textInverse} />
+              <Ionicons name="call-outline" size={24} color={colors.textInverse} />
             </Pressable>
           </View>
         </View>
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={60} color={Colors.error} />
+          <Ionicons name="alert-circle-outline" size={60} color={colors.error} />
           <Text style={styles.errorText}>{error}</Text>
           <Pressable style={styles.retryButton} onPress={refresh}>
             <Text style={styles.retryText}>{t('common.retry')}</Text>
@@ -245,10 +251,10 @@ export default function CallsScreen() {
         <Text style={styles.headerTitle}>{t('calls.title')}</Text>
         <View style={styles.headerActions}>
           <Pressable style={styles.headerButton}>
-            <Ionicons name="search-outline" size={24} color={Colors.textInverse} />
+            <Ionicons name="search-outline" size={24} color={colors.textInverse} />
           </Pressable>
           <Pressable style={styles.headerButton} onPress={handleNewCall}>
-            <Ionicons name="call-outline" size={24} color={Colors.textInverse} />
+            <Ionicons name="call-outline" size={24} color={colors.textInverse} />
           </Pressable>
         </View>
       </View>
@@ -257,7 +263,7 @@ export default function CallsScreen() {
       <View style={styles.content}>
         {callLogs.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="call-outline" size={80} color={Colors.primary} />
+            <Ionicons name="call-outline" size={80} color={colors.primary} />
             <Text style={styles.emptyText}>{t('calls.noCalls')}</Text>
           </View>
         ) : (
@@ -271,8 +277,8 @@ export default function CallsScreen() {
               <RefreshControl
                 refreshing={isLoading}
                 onRefresh={refresh}
-                colors={[Colors.primary]}
-                tintColor={Colors.primary}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
               />
             }
           />
@@ -282,10 +288,11 @@ export default function CallsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   header: {
     flexDirection: 'row',
@@ -293,12 +300,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   headerTitle: {
     fontFamily: Typography.fontFamily.bold,
     fontSize: Typography.size.xl,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   headerActions: {
     flexDirection: 'row',
@@ -310,25 +317,25 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     paddingHorizontal: Spacing.xl,
   },
   errorText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.base,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.md,
     marginBottom: Spacing.lg,
@@ -336,13 +343,13 @@ const styles = StyleSheet.create({
   retryButton: {
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: Radius.md,
   },
   retryText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.base,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   emptyState: {
     flex: 1,
@@ -353,7 +360,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.base,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.lg,
   },
@@ -365,7 +372,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   avatarContainer: {
     marginRight: Spacing.md,
@@ -376,7 +383,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   avatarPlaceholder: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -386,11 +393,11 @@ const styles = StyleSheet.create({
   userName: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.base,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   missedText: {
-    color: Colors.error,
+    color: colors.error,
   },
   callDetails: {
     flexDirection: 'row',
@@ -408,7 +415,7 @@ const styles = StyleSheet.create({
   callTime: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   callTypeButton: {
     padding: Spacing.xs,
