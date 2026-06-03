@@ -93,6 +93,40 @@ export const STORAGE_BUCKETS = {
 export type StorageBucket = typeof STORAGE_BUCKETS[keyof typeof STORAGE_BUCKETS];
 
 /**
+ * Log which Supabase project this app is actually talking to.
+ *
+ * "The database schema is invalid or incompatible" almost always means one of:
+ *   1. The app is pointed at the WRONG Supabase project (e.g. a different
+ *      project's URL/anon key landed in your env). Check the host printed below
+ *      matches the project whose Storage buckets you configured.
+ *   2. The target project's Storage service has pending/broken migrations and
+ *      needs to be restarted (Dashboard > pause then resume the project) or
+ *      upgraded. Creating buckets does NOT corrupt the schema; running raw SQL
+ *      against the `storage` schema does.
+ *
+ * This only prints the host (project ref), never the anon key.
+ */
+export function logSupabaseTarget(): void {
+  let host = 'unknown';
+  try {
+    host = new URL(supabaseUrl).host;
+  } catch {
+    host = supabaseUrl;
+  }
+  const keySet = Boolean(supabaseAnonKey) && supabaseAnonKey !== 'your-anon-key';
+  const urlSet = Boolean(supabaseUrl) && !supabaseUrl.includes('your-project');
+
+  console.log(`🔗 Supabase target project: ${host}`);
+  if (!urlSet || !keySet) {
+    console.warn(
+      '⚠️ Supabase URL/anon key look unset or are using placeholder values. ' +
+        'Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to the ' +
+        'project that owns your Storage buckets.'
+    );
+  }
+}
+
+/**
  * Ensure all required storage buckets exist.
  * Call this once on app startup. If buckets already exist, this is a no-op.
  * If they don't exist, it creates them as public buckets.
