@@ -43,7 +43,7 @@ import { usePendingMessages } from '../../../hooks/usePendingMessages';
 import { useAuthStore } from '../../../store/authStore';
 import { getChatById } from '../../../lib/chat';
 import { getUsersByIds } from '../../../lib/contacts';
-import { uploadVoiceNoteFromUri, uploadChatMediaFromUri } from '../../../lib/storage';
+import { uploadChatMediaFromUri } from '../../../lib/storage';
 import type { Message, Chat, ReplyReference, UserProfile, LocationData } from '../../../types';
 
 // Helper to check if two dates are on different days
@@ -463,6 +463,7 @@ export default function ChatDetailScreen() {
       pendingId = addPending({
         type: mediaType,
         localUri: isVideo && thumbnailUri ? thumbnailUri : asset.uri,
+        uploadUri: asset.uri, // Store original file URI for retry (important for videos)
       });
 
       console.log(`📸 Uploading ${mediaType} from camera...`);
@@ -559,6 +560,7 @@ export default function ChatDetailScreen() {
       pendingId = addPending({
         type: mediaType,
         localUri: isVideo && thumbnailUri ? thumbnailUri : asset.uri,
+        uploadUri: asset.uri, // Store original file URI for retry (important for videos)
       });
 
       console.log(`🖼️ Uploading ${mediaType} from gallery...`);
@@ -855,27 +857,46 @@ export default function ChatDetailScreen() {
 
       console.log('🎤 Uploading voice note:', uri);
 
-      // Upload voice note to Supabase Storage
-      const uploadResult = await uploadVoiceNoteFromUri(chatId, user.uid, uri);
-
-      if (!uploadResult.success || !uploadResult.url) {
-        console.error('❌ Failed to upload voice note:', uploadResult.error);
-        Alert.alert('Error', 'Failed to upload voice note. Please try again.');
-        return;
-      }
-
-      console.log('✅ Voice note uploaded:', uploadResult.url);
-
-      // Mark as cached so sender doesn't need to "download" their own voice note
-      voiceCache.markAsCached(uploadResult.url, uri);
-
-      // Send message with the uploaded URL
-      await sendVoice(uploadResult.url, duration);
-
-      // Scroll to bottom
+      // Add pending message for optimistic UI
+      const pendingId = addPending({
+        type: 'audio',
+        localUri: uri,
+        audioDuration: duration,
+      });
       scrollToBottom();
+
+      try {
+        // Upload voice note to Supabase Storage with progress
+        const uploadResult = await uploadChatMediaFromUri(
+          chatId,
+          user.uid,
+          uri,
+          'audio',
+          (progress) => updateProgress(pendingId, progress)
+        );
+
+        if (!uploadResult.success || !uploadResult.url) {
+          throw new Error(uploadResult.error || 'Upload failed');
+        }
+
+        console.log('✅ Voice note uploaded:', uploadResult.url);
+
+        // Mark as cached so sender doesn't need to "download" their own voice note
+        voiceCache.markAsCached(uploadResult.url, uri);
+
+        markAsSending(pendingId);
+
+        // Send message with the uploaded URL
+        await sendVoice(uploadResult.url, duration);
+
+        removePending(pendingId);
+        scrollToBottom();
+      } catch (error) {
+        console.error('❌ Failed to upload voice note:', error);
+        markAsFailed(pendingId, error instanceof Error ? error.message : 'Upload failed');
+      }
     },
-    [chatId, user?.uid, sendVoice, scrollToBottom, voiceCache]
+    [chatId, user?.uid, sendVoice, scrollToBottom, voiceCache, addPending, updateProgress, markAsSending, markAsFailed, removePending]
   );
 
   // Handle voice note download
@@ -930,11 +951,12 @@ export default function ChatDetailScreen() {
       // Re-upload based on type
       try {
         if (pending.type === 'image' || pending.type === 'video') {
-          if (!pending.localUri) return;
+          const fileUri = pending.uploadUri || pending.localUri;
+          if (!fileUri) return;
           const uploadResult = await uploadChatMediaFromUri(
             chatId,
             user.uid,
-            pending.localUri,
+            fileUri,
             pending.type,
             (progress) => updateProgress(pendingId, progress)
           );
@@ -946,6 +968,7 @@ export default function ChatDetailScreen() {
           markAsSending(pendingId);
 
           if (pending.type === 'video') {
+            // For videos, localUri is the thumbnail, uploadUri is the video
             await sendVideo(uploadResult.url, pending.localUri);
           } else {
             await sendImage(uploadResult.url);
