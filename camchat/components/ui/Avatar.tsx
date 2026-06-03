@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 /**
  * Reusable Avatar Component
  * Displays user profile picture with fallback to initials
@@ -5,7 +6,8 @@
 
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
-import { Colors, Typography, Spacing } from '../../constants';
+import { Typography, Spacing, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { getInitials } from '../../utils/getInitials';
 
 type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
@@ -54,6 +56,8 @@ export default function Avatar({
   isOnline = false,
   style,
 }: AvatarProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const dimensions = sizeMap[size];
   const fontSize = fontSizeMap[size];
   const onlineSize = onlineIndicatorSizeMap[size];
@@ -99,28 +103,29 @@ export default function Avatar({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     position: 'relative',
   },
   image: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: colors.surfaceAlt,
   },
   placeholder: {
-    backgroundColor: Colors.primaryFaded,
+    backgroundColor: colors.primaryFaded,
     justifyContent: 'center',
     alignItems: 'center',
   },
   initials: {
     fontFamily: Typography.fontFamily.semibold,
-    color: Colors.primary,
+    color: colors.primary,
     textTransform: 'uppercase',
   },
   onlineIndicator: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: Colors.success,
-    borderColor: Colors.background,
+    backgroundColor: colors.success,
+    borderColor: colors.background,
   },
 });

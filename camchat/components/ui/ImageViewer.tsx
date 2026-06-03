@@ -3,7 +3,7 @@
  * Full-screen image viewer with pinch-to-zoom and download
  */
 
-import { memo, useState, useCallback } from 'react';
+import { memo, useState, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -18,7 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
-import { Colors, Spacing } from '../../constants';
+import { Spacing, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { t } from '../../lib/i18n';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -32,6 +33,8 @@ export const ImageViewer = memo(function ImageViewer({
   imageUrl,
   onClose,
 }: ImageViewerProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -90,7 +93,7 @@ export const ImageViewer = memo(function ImageViewer({
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={onClose} style={styles.headerButton}>
-            <Ionicons name="close" size={28} color={Colors.textInverse} />
+            <Ionicons name="close" size={28} color={colors.textInverse} />
           </Pressable>
 
           <View style={styles.headerSpacer} />
@@ -101,9 +104,9 @@ export const ImageViewer = memo(function ImageViewer({
             disabled={isDownloading}
           >
             {isDownloading ? (
-              <ActivityIndicator size="small" color={Colors.textInverse} />
+              <ActivityIndicator size="small" color={colors.textInverse} />
             ) : (
-              <Ionicons name="download-outline" size={26} color={Colors.textInverse} />
+              <Ionicons name="download-outline" size={26} color={colors.textInverse} />
             )}
           </Pressable>
         </View>
@@ -112,7 +115,7 @@ export const ImageViewer = memo(function ImageViewer({
         <View style={styles.imageContainer}>
           {isLoading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.textInverse} />
+              <ActivityIndicator size="large" color={colors.textInverse} />
             </View>
           )}
 
@@ -129,7 +132,8 @@ export const ImageViewer = memo(function ImageViewer({
   );
 });
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'black',

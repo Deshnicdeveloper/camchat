@@ -1,10 +1,12 @@
+import { useMemo } from 'react';
 /**
  * Reusable Button Component
  * Primary, secondary, and outline variants
  */
 
 import { Pressable, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -32,6 +34,8 @@ export default function Button({
   style,
   textStyle,
 }: ButtonProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isDisabled = disabled || loading;
 
   const getButtonStyle = (): ViewStyle[] => {
@@ -99,14 +103,14 @@ export default function Button({
   const getLoaderColor = (): string => {
     switch (variant) {
       case 'primary':
-        return Colors.primary;
+        return colors.primary;
       case 'secondary':
-        return Colors.textInverse;
+        return colors.textInverse;
       case 'outline':
       case 'ghost':
-        return Colors.primary;
+        return colors.primary;
       default:
-        return Colors.primary;
+        return colors.primary;
     }
   };
 
@@ -128,7 +132,8 @@ export default function Button({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -154,15 +159,15 @@ const styles = StyleSheet.create({
 
   // Color variants
   buttonPrimary: {
-    backgroundColor: Colors.textInverse,
+    backgroundColor: colors.textInverse,
   },
   buttonSecondary: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   buttonOutline: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: Colors.primary,
+    borderColor: colors.primary,
   },
   buttonGhost: {
     backgroundColor: 'transparent',
@@ -190,16 +195,16 @@ const styles = StyleSheet.create({
   },
 
   textPrimary: {
-    color: Colors.primary,
+    color: colors.primary,
   },
   textSecondary: {
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   textOutline: {
-    color: Colors.primary,
+    color: colors.primary,
   },
   textGhost: {
-    color: Colors.primary,
+    color: colors.primary,
   },
   textDisabled: {
     opacity: 0.7,

@@ -1,10 +1,12 @@
+import { useMemo } from 'react';
 /**
  * Badge Component
  * Used for unread counts, status indicators, etc.
  */
 
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { Colors, Typography, Spacing } from '../../constants';
+import { Typography, Spacing, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 
 type BadgeVariant = 'primary' | 'success' | 'warning' | 'error' | 'muted';
 type BadgeSize = 'sm' | 'md' | 'lg';
@@ -26,6 +28,8 @@ export default function Badge({
   dot = false,
   style,
 }: BadgeProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   if (!dot && (count === undefined || count <= 0)) {
     return null;
   }
@@ -75,7 +79,8 @@ export default function Badge({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   badge: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -127,25 +132,25 @@ const styles = StyleSheet.create({
 
   // Color variants
   badgePrimary: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   badgeSuccess: {
-    backgroundColor: Colors.success,
+    backgroundColor: colors.success,
   },
   badgeWarning: {
-    backgroundColor: Colors.warning,
+    backgroundColor: colors.warning,
   },
   badgeError: {
-    backgroundColor: Colors.error,
+    backgroundColor: colors.error,
   },
   badgeMuted: {
-    backgroundColor: Colors.textSecondary,
+    backgroundColor: colors.textSecondary,
   },
 
   // Text styles
   text: {
     fontFamily: Typography.fontFamily.semibold,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   text_sm: {
     fontSize: 10,
