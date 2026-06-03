@@ -75,6 +75,7 @@ export function useChat(): UseChatReturn {
     removeChat,
     isLoading,
     setLoading,
+    setParticipants: persistParticipants,
   } = useChatStore();
 
   const [participants, setParticipants] = useState<Map<string, UserProfile>>(new Map());
@@ -82,6 +83,23 @@ export function useChat(): UseChatReturn {
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const lastChatsRef = useRef<Chat[]>([]);
   const fetchedParticipantIdsRef = useRef<Set<string>>(new Set());
+
+  // Seed the participant cache from the persisted store on mount so chat
+  // headers render instantly and we don't re-fetch profiles we already have
+  // (survives remounts and app restarts).
+  useEffect(() => {
+    const stored = useChatStore.getState().participants;
+    const ids = Object.keys(stored);
+    if (ids.length === 0) return;
+    setParticipants((prev) => {
+      const map = new Map(prev);
+      for (const id of ids) {
+        if (!map.has(id)) map.set(id, stored[id]);
+        fetchedParticipantIdsRef.current.add(id);
+      }
+      return map;
+    });
+  }, []);
 
   // Subscribe to real-time chat updates
   useEffect(() => {
@@ -180,6 +198,21 @@ export function useChat(): UseChatReturn {
           }
           return newMap;
         });
+
+        // Persist to the store so these profiles are available instantly on the
+        // next mount / app launch (no network needed to render the header).
+        const merged = { ...useChatStore.getState().participants };
+        for (const u of users) {
+          merged[u.uid] = {
+            uid: u.uid,
+            displayName: u.displayName,
+            avatarUrl: u.avatarUrl,
+            about: u.about,
+            isOnline: u.isOnline,
+            lastSeen: u.lastSeen,
+          };
+        }
+        persistParticipants(merged);
       } catch (err) {
         console.error('Error fetching participants:', err);
         // Remove from fetched set so we can retry
@@ -348,7 +381,10 @@ export function useChat(): UseChatReturn {
    */
   const getParticipant = useCallback(
     (participantId: string): UserProfile | undefined => {
-      return participants.get(participantId);
+      return (
+        participants.get(participantId) ||
+        useChatStore.getState().participants[participantId]
+      );
     },
     [participants]
   );
