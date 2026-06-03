@@ -4,11 +4,12 @@
  * Similar to WhatsApp's optimistic UI
  */
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { formatMessageTime } from '../../utils/formatTime';
 import type { PendingMessage } from '../../hooks/usePendingMessages';
 import Svg, { Circle } from 'react-native-svg';
@@ -23,6 +24,8 @@ interface PendingMessageBubbleProps {
  * Circular progress indicator
  */
 function CircularProgress({ progress, size = 40 }: { progress: number; size?: number }) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const strokeWidth = 3;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -45,7 +48,7 @@ function CircularProgress({ progress, size = 40 }: { progress: number; size?: nu
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={Colors.textInverse}
+          stroke={colors.textInverse}
           strokeWidth={strokeWidth}
           fill="transparent"
           strokeDasharray={circumference}
@@ -56,7 +59,7 @@ function CircularProgress({ progress, size = 40 }: { progress: number; size?: nu
       </Svg>
       {/* Cancel button in center */}
       <View style={styles.progressCenter}>
-        <Ionicons name="close" size={16} color={Colors.textInverse} />
+        <Ionicons name="close" size={16} color={colors.textInverse} />
       </View>
     </View>
   );
@@ -67,6 +70,8 @@ function PendingMessageBubble({
   onRetry,
   onCancel,
 }: PendingMessageBubbleProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isFailed = message.status === 'failed';
 
   const renderContent = () => {
@@ -85,7 +90,7 @@ function PendingMessageBubble({
             <View style={styles.mediaOverlay}>
               {isFailed ? (
                 <Pressable onPress={onRetry} style={styles.errorButton}>
-                  <Ionicons name="alert-circle" size={32} color={Colors.error} />
+                  <Ionicons name="alert-circle" size={32} color={colors.error} />
                 </Pressable>
               ) : (
                 <Pressable onPress={onCancel}>
@@ -108,13 +113,13 @@ function PendingMessageBubble({
             )}
             {/* Video icon overlay */}
             <View style={[styles.mediaOverlay, styles.videoIconOverlay]}>
-              <Ionicons name="videocam" size={20} color={Colors.textInverse} style={styles.videoIcon} />
+              <Ionicons name="videocam" size={20} color={colors.textInverse} style={styles.videoIcon} />
             </View>
             {/* Progress overlay */}
             <View style={styles.mediaOverlay}>
               {isFailed ? (
                 <Pressable onPress={onRetry} style={styles.errorButton}>
-                  <Ionicons name="alert-circle" size={32} color={Colors.error} />
+                  <Ionicons name="alert-circle" size={32} color={colors.error} />
                 </Pressable>
               ) : (
                 <Pressable onPress={onCancel}>
@@ -130,11 +135,11 @@ function PendingMessageBubble({
           <View style={styles.documentContainer}>
             <View style={styles.documentIcon}>
               {isFailed ? (
-                <Ionicons name="alert-circle" size={28} color={Colors.error} />
+                <Ionicons name="alert-circle" size={28} color={colors.error} />
               ) : message.progress < 100 ? (
-                <ActivityIndicator size="small" color={Colors.textInverse} />
+                <ActivityIndicator size="small" color={colors.textInverse} />
               ) : (
-                <Ionicons name="document" size={28} color={Colors.textInverse} />
+                <Ionicons name="document" size={28} color={colors.textInverse} />
               )}
             </View>
             <View style={styles.documentInfo}>
@@ -150,7 +155,7 @@ function PendingMessageBubble({
             </View>
             {isFailed && (
               <Pressable onPress={onRetry} style={styles.retryButton}>
-                <Ionicons name="refresh" size={20} color={Colors.textInverse} />
+                <Ionicons name="refresh" size={20} color={colors.textInverse} />
               </Pressable>
             )}
           </View>
@@ -161,12 +166,12 @@ function PendingMessageBubble({
           <View style={styles.locationContainer}>
             <View style={styles.locationMap}>
               {isFailed ? (
-                <Ionicons name="alert-circle" size={32} color={Colors.error} />
+                <Ionicons name="alert-circle" size={32} color={colors.error} />
               ) : (
                 <>
-                  <Ionicons name="location" size={32} color={Colors.error} />
+                  <Ionicons name="location" size={32} color={colors.error} />
                   {message.progress < 100 && (
-                    <ActivityIndicator size="small" color={Colors.primary} style={styles.locationLoader} />
+                    <ActivityIndicator size="small" color={colors.primary} style={styles.locationLoader} />
                   )}
                 </>
               )}
@@ -180,7 +185,7 @@ function PendingMessageBubble({
       default:
         return (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={Colors.textInverse} />
+            <ActivityIndicator size="small" color={colors.textInverse} />
             <Text style={styles.loadingText}>Sending...</Text>
           </View>
         );
@@ -197,7 +202,7 @@ function PendingMessageBubble({
           <Text style={styles.time}>{formatMessageTime(message.createdAt)}</Text>
           <View style={styles.statusIcon}>
             {isFailed ? (
-              <Ionicons name="alert-circle" size={14} color={Colors.error} />
+              <Ionicons name="alert-circle" size={14} color={colors.error} />
             ) : (
               <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.7)" />
             )}
@@ -222,7 +227,8 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
@@ -237,7 +243,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
   },
   bubbleSent: {
-    backgroundColor: Colors.bubble_sent,
+    backgroundColor: colors.bubble_sent,
     borderBottomRightRadius: Radius.sm,
   },
   bubbleFailed: {
@@ -303,7 +309,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.xs,
-    color: Colors.error,
+    color: colors.error,
     marginTop: Spacing.xs,
   },
 
@@ -326,7 +332,7 @@ const styles = StyleSheet.create({
   documentName: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.sm,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   documentSize: {
     fontFamily: Typography.fontFamily.regular,
@@ -342,7 +348,7 @@ const styles = StyleSheet.create({
   locationMap: {
     width: '100%',
     height: 100,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: colors.surfaceAlt,
     borderRadius: Radius.md,
     justifyContent: 'center',
     alignItems: 'center',
@@ -356,7 +362,7 @@ const styles = StyleSheet.create({
   locationLabel: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
 
   // Loading
@@ -368,7 +374,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     marginLeft: Spacing.sm,
   },
 

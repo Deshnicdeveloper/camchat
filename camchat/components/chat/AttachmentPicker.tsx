@@ -3,7 +3,7 @@
  * Bottom sheet for selecting attachment type: Camera, Gallery, Document, Location
  */
 
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { t } from '../../lib/i18n';
 
 type AttachmentType = 'camera' | 'gallery' | 'document' | 'location';
@@ -63,6 +64,8 @@ export const AttachmentPicker = memo(function AttachmentPicker({
   onClose,
   onSelect,
 }: AttachmentPickerProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const handleSelect = useCallback(
     (type: AttachmentType) => {
       console.log(`🎯 AttachmentPicker: ${type} button pressed`);
@@ -109,7 +112,7 @@ export const AttachmentPicker = memo(function AttachmentPicker({
                   <Ionicons
                     name={option.icon}
                     size={28}
-                    color={Colors.textInverse}
+                    color={colors.textInverse}
                   />
                 </View>
                 <Text style={styles.optionLabel}>{t(option.label)}</Text>
@@ -131,17 +134,18 @@ export const AttachmentPicker = memo(function AttachmentPicker({
   );
 });
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.overlay,
+    backgroundColor: colors.overlay,
   },
   sheet: {
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
     paddingBottom: Spacing.xl + 20, // Extra padding for safe area
@@ -153,13 +157,13 @@ const styles = StyleSheet.create({
   handle: {
     width: 36,
     height: 4,
-    backgroundColor: Colors.divider,
+    backgroundColor: colors.divider,
     borderRadius: 2,
   },
   title: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.lg,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: Spacing.lg,
   },
@@ -187,20 +191,20 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.xs,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   cancelButton: {
     marginHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radius.md,
     alignItems: 'center',
   },
   cancelText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
 });
 

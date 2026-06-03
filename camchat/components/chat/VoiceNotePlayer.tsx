@@ -7,7 +7,8 @@
 import { memo, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 
 interface VoiceNotePlayerProps {
   duration: number; // Total duration in seconds
@@ -48,6 +49,8 @@ export const VoiceNotePlayer = memo(function VoiceNotePlayer({
   onPause,
   onSpeedToggle,
 }: VoiceNotePlayerProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   // Use provided waveform or generate placeholder
   const waveform = useMemo(() => {
     return waveformData || generateWaveform(30);
@@ -69,14 +72,14 @@ export const VoiceNotePlayer = memo(function VoiceNotePlayer({
 
   // Color scheme based on sent/received
   const colors = {
-    playButton: isSent ? Colors.textInverse : Colors.primary,
+    playButton: isSent ? colors.textInverse : colors.primary,
     playButtonBg: isSent ? 'rgba(255,255,255,0.15)' : 'rgba(16,52,166,0.1)',
-    waveformPlayed: isSent ? Colors.textInverse : Colors.primary,
-    waveformUnplayed: isSent ? 'rgba(255,255,255,0.4)' : Colors.divider,
-    text: isSent ? 'rgba(255,255,255,0.85)' : Colors.textSecondary,
-    speedBadge: isSent ? 'rgba(255,255,255,0.2)' : Colors.surface,
-    speedText: isSent ? Colors.textInverse : Colors.textPrimary,
-    downloadIcon: isSent ? Colors.textInverse : Colors.primary,
+    waveformPlayed: isSent ? colors.textInverse : colors.primary,
+    waveformUnplayed: isSent ? 'rgba(255,255,255,0.4)' : colors.divider,
+    text: isSent ? 'rgba(255,255,255,0.85)' : colors.textSecondary,
+    speedBadge: isSent ? 'rgba(255,255,255,0.2)' : colors.surface,
+    speedText: isSent ? colors.textInverse : colors.textPrimary,
+    downloadIcon: isSent ? colors.textInverse : colors.primary,
   };
 
   // Handle button press
@@ -199,7 +202,8 @@ export const VoiceNotePlayer = memo(function VoiceNotePlayer({
   );
 });
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',

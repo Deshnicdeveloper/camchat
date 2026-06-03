@@ -3,9 +3,10 @@
  * Animated three-dot bubble showing when someone is typing
  */
 
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useMemo } from 'react';
 import { View, StyleSheet, Animated, Easing } from 'react-native';
-import { Colors, Spacing, Radius } from '../../constants';
+import { Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 
 interface TypingIndicatorProps {
   size?: 'small' | 'medium';
@@ -14,6 +15,8 @@ interface TypingIndicatorProps {
 export const TypingIndicator = memo(function TypingIndicator({
   size = 'medium',
 }: TypingIndicatorProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const dot1 = useRef(new Animated.Value(0)).current;
   const dot2 = useRef(new Animated.Value(0)).current;
   const dot3 = useRef(new Animated.Value(0)).current;
@@ -100,19 +103,20 @@ export const TypingIndicator = memo(function TypingIndicator({
   );
 });
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.messageReceived,
+    backgroundColor: colors.messageReceived,
     paddingHorizontal: Spacing.md,
     borderRadius: Radius.lg,
     alignSelf: 'flex-start',
     marginVertical: Spacing.xs,
   },
   dot: {
-    backgroundColor: Colors.textSecondary,
+    backgroundColor: colors.textSecondary,
     marginHorizontal: 2,
   },
 });

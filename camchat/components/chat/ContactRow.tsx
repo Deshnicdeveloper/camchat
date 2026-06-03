@@ -3,10 +3,11 @@
  * Individual contact item for new chat selection
  */
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Avatar } from '../ui';
-import { Colors, Typography, Spacing } from '../../constants';
+import { Typography, Spacing, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { User } from '../../types';
 
 interface ContactRowProps {
@@ -15,6 +16,8 @@ interface ContactRowProps {
 }
 
 function ContactRow({ contact, onPress }: ContactRowProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Pressable style={styles.container} onPress={onPress}>
       {/* Avatar */}
@@ -39,13 +42,14 @@ function ContactRow({ contact, onPress }: ContactRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
@@ -54,13 +58,13 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   about: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 });
 

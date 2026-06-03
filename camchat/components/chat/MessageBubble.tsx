@@ -3,11 +3,12 @@
  * Individual message in chat conversation
  */
 
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { formatMessageTime } from '../../utils/formatTime';
 import { VoiceNotePlayer } from './VoiceNotePlayer';
 import { Message, MessageStatus } from '../../types';
@@ -38,8 +39,9 @@ interface MessageBubbleProps {
  * Render message status ticks with proper contrast
  */
 function MessageStatusIcon({ status, isSent }: { status: MessageStatus; isSent: boolean }) {
+  const { colors } = useColors();
   // Colors with better contrast
-  const tickColor = isSent ? 'rgba(255,255,255,0.85)' : Colors.textSecondary;
+  const tickColor = isSent ? 'rgba(255,255,255,0.85)' : colors.textSecondary;
   const readTickColor = '#34D399'; // Bright green for read status - visible on both backgrounds
 
   switch (status) {
@@ -75,6 +77,8 @@ function MessageBubble({
   voiceNoteDownloadProgress = 0,
   onVoiceNoteDownload,
 }: MessageBubbleProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const bubbleStyle = isSent ? styles.bubbleSent : styles.bubbleReceived;
   const textStyle = isSent ? styles.textSent : styles.textReceived;
   const timeStyle = isSent ? styles.timeSent : styles.timeReceived;
@@ -144,7 +148,7 @@ function MessageBubble({
             <Ionicons
               name="document-outline"
               size={32}
-              color={isSent ? Colors.textInverse : Colors.primary}
+              color={isSent ? colors.textInverse : colors.primary}
             />
             <View style={styles.documentInfo}>
               <Text style={[styles.documentName, textStyle]} numberOfLines={1}>
@@ -163,7 +167,7 @@ function MessageBubble({
         return (
           <View style={styles.locationContainer}>
             <View style={styles.locationMap}>
-              <Ionicons name="location" size={32} color={Colors.error} />
+              <Ionicons name="location" size={32} color={colors.error} />
             </View>
             <Text style={textStyle}>{message.location?.label || 'Shared location'}</Text>
           </View>
@@ -208,7 +212,7 @@ function MessageBubble({
             <Ionicons
               name="star"
               size={12}
-              color={isSent ? 'rgba(255,255,255,0.7)' : Colors.warning}
+              color={isSent ? 'rgba(255,255,255,0.7)' : colors.warning}
               style={styles.starIcon}
             />
           )}
@@ -249,7 +253,8 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
@@ -267,28 +272,28 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
   },
   bubbleSent: {
-    backgroundColor: Colors.bubble_sent,
+    backgroundColor: colors.bubble_sent,
     borderBottomRightRadius: Radius.sm,
   },
   bubbleReceived: {
-    backgroundColor: Colors.bubble_received,
+    backgroundColor: colors.bubble_received,
     borderBottomLeftRadius: Radius.sm,
   },
   senderName: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.sm,
-    color: Colors.primary,
+    color: colors.primary,
     marginBottom: Spacing.xs,
   },
   textSent: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.base,
-    color: Colors.bubble_sent_text,
+    color: colors.bubble_sent_text,
   },
   textReceived: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.base,
-    color: Colors.bubble_received_text,
+    color: colors.bubble_received_text,
   },
   metaRow: {
     flexDirection: 'row',
@@ -307,7 +312,7 @@ const styles = StyleSheet.create({
   timeReceived: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.xs,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   statusIcon: {
     marginLeft: Spacing.xs,
@@ -327,17 +332,17 @@ const styles = StyleSheet.create({
   },
   replyPreviewReceived: {
     backgroundColor: 'rgba(16,52,166,0.1)',
-    borderLeftColor: Colors.primary,
+    borderLeftColor: colors.primary,
   },
   replyName: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.xs,
-    color: Colors.primary,
+    color: colors.primary,
   },
   replyText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.xs,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
 
@@ -387,7 +392,7 @@ const styles = StyleSheet.create({
   locationMap: {
     width: '100%',
     height: 100,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: colors.surfaceAlt,
     borderRadius: Radius.md,
     justifyContent: 'center',
     alignItems: 'center',
@@ -401,7 +406,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     paddingHorizontal: Spacing.xs,
     paddingVertical: 2,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderRadius: Radius.full,
     alignSelf: 'flex-start',
   },
@@ -412,7 +417,7 @@ const styles = StyleSheet.create({
   reactionCount: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.xs,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginLeft: Spacing.xs,
   },
 });
