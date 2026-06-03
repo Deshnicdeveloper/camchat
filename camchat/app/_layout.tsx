@@ -3,7 +3,7 @@
  * Handles font loading, splash screen, auth state, navigation, and push notifications
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import {
@@ -15,7 +15,8 @@ import {
 } from '@expo-google-fonts/inter';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, View } from 'react-native';
-import { Colors } from '../constants';
+import { ColorPalette } from '../constants';
+import { useColors } from '../hooks/useColors';
 import { useAuthStore } from '../store/authStore';
 import {
   setupNotificationListeners,
@@ -29,6 +30,8 @@ import type { NotificationData } from '../lib/notifications';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const segments = useSegments();
   const navigationState = useRootNavigationState();
@@ -156,9 +159,10 @@ export default function RootLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
 });
