@@ -21,8 +21,15 @@ import {
 import { db } from './firebase';
 import type { Call, CallType, CallStatus, CallLog, UserProfile } from '../types';
 
-// Agora App ID from environment
-const AGORA_APP_ID = process.env.EXPO_PUBLIC_AGORA_APP_ID || 'db2e4a2c37c048e798990860eaeb3509';
+// Agora App ID from environment. Never hardcode a real App ID as a fallback —
+// set EXPO_PUBLIC_AGORA_APP_ID in your .env (see .env.example).
+const AGORA_APP_ID = process.env.EXPO_PUBLIC_AGORA_APP_ID ?? '';
+
+if (__DEV__ && !AGORA_APP_ID) {
+  console.warn(
+    '⚠️ EXPO_PUBLIC_AGORA_APP_ID is not set — voice/video calls will not connect.',
+  );
+}
 
 // Collection reference
 const callsCollection = collection(db, 'calls');

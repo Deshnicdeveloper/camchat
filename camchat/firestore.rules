@@ -17,7 +17,41 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
         allow create: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        // Participants may update messages for read receipts, reactions,
+        // starring, and soft-delete (deletedFor).
+        allow update: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
       }
+    }
+
+    // Statuses collection (24-hour stories)
+    match /statuses/{statusId} {
+      // Any authenticated user can read; the client filters to contacts and
+      // drops expired statuses before rendering.
+      allow read: if request.auth != null;
+      // Only the owner can create their own status.
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      // Any authenticated user can update (needed to append to viewedBy);
+      // the owner field cannot be changed.
+      allow update: if request.auth != null && request.resource.data.userId == resource.data.userId;
+      // Only the owner can delete their status.
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Calls collection (voice/video call signaling)
+    match /calls/{callId} {
+      // Only the two parties on the call can read it.
+      allow read: if request.auth != null
+        && (request.auth.uid == resource.data.callerId
+          || request.auth.uid == resource.data.receiverId);
+      // The caller initiates the call document.
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.callerId;
+      // Either party can update status (accept/decline/end) without
+      // reassigning the caller/receiver.
+      allow update: if request.auth != null
+        && (request.auth.uid == resource.data.callerId
+          || request.auth.uid == resource.data.receiverId)
+        && request.resource.data.callerId == resource.data.callerId
+        && request.resource.data.receiverId == resource.data.receiverId;
     }
   }
 }
