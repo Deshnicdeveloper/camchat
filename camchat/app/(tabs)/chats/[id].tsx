@@ -29,6 +29,7 @@ import { Colors, Typography, Spacing, Radius } from '../../../constants';
 import { t } from '../../../lib/i18n';
 import { formatLastSeen } from '../../../utils/formatters';
 import { MessageBubble, MessageInput, DateSeparator } from '../../../components/chat';
+import { ChatBackground } from '../../../components/chat/ChatBackground';
 import PendingMessageBubble from '../../../components/chat/PendingMessageBubble';
 import { TypingIndicator } from '../../../components/chat/TypingIndicator';
 import { MessageActionsSheet } from '../../../components/chat/MessageActionsSheet';
@@ -1237,6 +1238,8 @@ export default function ChatDetailScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <View style={styles.messagesContainer}>
+          {/* Subtle tiled pattern behind the messages */}
+          <ChatBackground />
           {isLoadingMessages ? (
             <View style={styles.loadingMessages}>
               <ActivityIndicator size="small" color={Colors.primary} />
