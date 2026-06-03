@@ -22,7 +22,7 @@ import {
   getLastNotificationResponse,
   handleNotificationTap,
 } from '../lib/notifications';
-import { ensureStorageBuckets } from '../lib/supabase';
+import { ensureStorageBuckets, logSupabaseTarget, diagnoseStorage } from '../lib/supabase';
 import type { NotificationData } from '../lib/notifications';
 
 // Prevent the splash screen from auto-hiding
@@ -92,8 +92,15 @@ export default function RootLayout() {
   useEffect(() => {
     if ((fontsLoaded || fontError) && isInitialized) {
       SplashScreen.hideAsync();
+      // Log which Supabase project we're actually pointed at (host only).
+      logSupabaseTarget();
       // Ensure Supabase storage buckets exist (non-blocking)
       ensureStorageBuckets().catch(() => {});
+      // In dev, surface storage health (connect / buckets / upload) on startup
+      // so "schema is invalid or incompatible" issues are diagnosed up front.
+      if (__DEV__) {
+        diagnoseStorage().catch(() => {});
+      }
     }
   }, [fontsLoaded, fontError, isInitialized]);
 
