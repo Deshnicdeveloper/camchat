@@ -49,11 +49,28 @@
     runCounts(slide);
   }
 
+  const isPrint = /print-pdf/gi.test(window.location.search);
+
+  // In PDF-export mode every slide is rendered at once: reveal all of them
+  // and snap counters to their final value (CSS forces visibility too).
+  function finalizeAll() {
+    document.querySelectorAll('.reveal .slides section').forEach((s) => {
+      s.classList.add('go');
+      s.querySelectorAll('.count').forEach((el) => {
+        el.textContent = el.dataset.to || el.textContent;
+      });
+    });
+  }
+
   deck.initialize().then(() => {
-    animate(deck.getCurrentSlide());
+    if (isPrint) finalizeAll();
+    else animate(deck.getCurrentSlide());
   });
 
-  deck.on('slidechanged', (e) => animate(e.currentSlide));
-  // also handle fragment-less re-entry
-  deck.on('ready', (e) => animate(e.currentSlide));
+  if (!isPrint) {
+    deck.on('slidechanged', (e) => animate(e.currentSlide));
+    deck.on('ready', (e) => animate(e.currentSlide));
+    // when entering overview, reveal everything so thumbnails aren't blank
+    deck.on('overviewshown', finalizeAll);
+  }
 })();

@@ -213,3 +213,32 @@ html,body{background:#081627;}
 .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.36em;color:var(--mut);}
 .legend span{display:inline-flex;align-items:center;gap:8px;}
 .legend i{width:26px;height:3px;border-radius:3px;display:inline-block;}
+
+/* ===================== PRINT / PDF EXPORT =====================
+   In ?print-pdf mode (and the overview) all slides are laid out at once,
+   so the JS-driven .go class is never added to non-current slides.
+   Force every animated element into its final, visible state and keep
+   the dark theme so the exported PDF matches the on-screen design. */
+html.print-pdf .reveal,
+html.print-pdf .reveal-viewport{background:transparent!important;}
+html.print-pdf body{
+  background:linear-gradient(160deg,#0B2138 0%,#0A1B2E 45%,#081627 100%)!important;}
+html.print-pdf .reveal [data-anim],
+.reveal.overview [data-anim]{opacity:1!important;transform:none!important;animation:none!important;}
+html.print-pdf .draw,
+.reveal.overview .draw{stroke-dashoffset:0!important;}
+html.print-pdf .bar>i,
+.reveal.overview .bar>i{width:var(--w,70%)!important;}
+html.print-pdf .flow{animation:none!important;}
+html.print-pdf .pulse{opacity:1!important;}
+/* keep slide backgrounds visible in the export */
+html.print-pdf .reveal .slides section{background:transparent!important;}
+/* one slide == exactly one page: pin height & clip so nothing spills over
+   onto a phantom extra page (reveal forces overflow:visible otherwise). */
+html.print-pdf .reveal .slides section{
+  height:720px!important;
+  overflow:hidden!important;
+  padding:0!important;
+  page-break-inside:avoid!important;
+  page-break-after:always!important;}
+html.print-pdf .reveal .slides section:last-of-type{page-break-after:avoid!important;}
