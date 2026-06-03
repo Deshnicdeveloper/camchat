@@ -3,12 +3,13 @@
  * Individual chat item in the chat list
  */
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar, Badge } from '../ui';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { formatChatTime } from '../../utils/formatTime';
 import { Chat, MessageType } from '../../types';
 
@@ -56,6 +57,8 @@ function ChatRow({
   onDelete,
   currentUserId,
 }: ChatRowProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const unreadCount = chat.unreadCount[currentUserId] || 0;
   const hasUnread = unreadCount > 0;
   const lastMessagePreview = chat.lastMessage
@@ -72,19 +75,19 @@ function ChatRow({
       <View style={styles.swipeActions}>
         {onArchive && (
           <Pressable style={[styles.swipeAction, styles.archiveAction]} onPress={onArchive}>
-            <Ionicons name="archive-outline" size={22} color={Colors.textInverse} />
+            <Ionicons name="archive-outline" size={22} color={colors.textInverse} />
             <Text style={styles.swipeActionText}>Archive</Text>
           </Pressable>
         )}
         {onMute && (
           <Pressable style={[styles.swipeAction, styles.muteAction]} onPress={onMute}>
-            <Ionicons name="notifications-off-outline" size={22} color={Colors.textInverse} />
+            <Ionicons name="notifications-off-outline" size={22} color={colors.textInverse} />
             <Text style={styles.swipeActionText}>Mute</Text>
           </Pressable>
         )}
         {onDelete && (
           <Pressable style={[styles.swipeAction, styles.deleteAction]} onPress={onDelete}>
-            <Ionicons name="trash-outline" size={22} color={Colors.textInverse} />
+            <Ionicons name="trash-outline" size={22} color={colors.textInverse} />
             <Text style={styles.swipeActionText}>Delete</Text>
           </Pressable>
         )}
@@ -136,13 +139,14 @@ function ChatRow({
   return content;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
@@ -163,7 +167,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginRight: Spacing.sm,
   },
   nameUnread: {
@@ -172,21 +176,21 @@ const styles = StyleSheet.create({
   time: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.xs,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   timeUnread: {
-    color: Colors.primary,
+    color: colors.primary,
     fontFamily: Typography.fontFamily.medium,
   },
   preview: {
     flex: 1,
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginRight: Spacing.sm,
   },
   previewUnread: {
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   // Swipe actions
   swipeActions: {
@@ -201,17 +205,17 @@ const styles = StyleSheet.create({
   swipeActionText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.xs,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     marginTop: 4,
   },
   archiveAction: {
-    backgroundColor: Colors.warning,
+    backgroundColor: colors.warning,
   },
   muteAction: {
-    backgroundColor: Colors.textSecondary,
+    backgroundColor: colors.textSecondary,
   },
   deleteAction: {
-    backgroundColor: Colors.error,
+    backgroundColor: colors.error,
   },
 });
 
