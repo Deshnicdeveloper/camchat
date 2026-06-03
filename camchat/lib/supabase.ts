@@ -92,4 +92,111 @@ export const STORAGE_BUCKETS = {
 
 export type StorageBucket = typeof STORAGE_BUCKETS[keyof typeof STORAGE_BUCKETS];
 
+/**
+ * Ensure all required storage buckets exist.
+ * Call this once on app startup. If buckets already exist, this is a no-op.
+ * If they don't exist, it creates them as public buckets.
+ */
+export async function ensureStorageBuckets(): Promise<void> {
+  const requiredBuckets = [
+    { name: STORAGE_BUCKETS.AVATARS, public: true },
+    { name: STORAGE_BUCKETS.CHAT_MEDIA, public: true },
+    { name: STORAGE_BUCKETS.VOICE_NOTES, public: true },
+    { name: STORAGE_BUCKETS.STATUSES, public: true },
+  ];
+
+  try {
+    const { data: existingBuckets, error: listError } = await supabase.storage.listBuckets();
+
+    if (listError) {
+      console.warn('⚠️ Could not list storage buckets:', listError.message);
+      console.warn('💡 This may indicate a storage schema issue in your Supabase project.');
+      console.warn('   Go to Supabase Dashboard > Settings > Infrastructure to check for pending migrations.');
+      return;
+    }
+
+    const existingNames = new Set((existingBuckets || []).map((b) => b.name));
+
+    for (const bucket of requiredBuckets) {
+      if (!existingNames.has(bucket.name)) {
+        console.log(`📦 Creating storage bucket: ${bucket.name}`);
+        const { error: createError } = await supabase.storage.createBucket(bucket.name, {
+          public: bucket.public,
+          fileSizeLimit: 50 * 1024 * 1024, // 50MB
+        });
+
+        if (createError) {
+          console.warn(`⚠️ Could not create bucket "${bucket.name}":`, createError.message);
+        } else {
+          console.log(`✅ Created storage bucket: ${bucket.name}`);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Error ensuring storage buckets:', error);
+  }
+}
+
+/**
+ * Diagnostic function to check Supabase storage health.
+ * Call this to debug storage issues.
+ */
+export async function diagnoseStorage(): Promise<{
+  canConnect: boolean;
+  bucketsExist: boolean;
+  canUpload: boolean;
+  errors: string[];
+}> {
+  const errors: string[] = [];
+  let canConnect = false;
+  let bucketsExist = false;
+  let canUpload = false;
+
+  // Test 1: Can we list buckets?
+  try {
+    const { data, error } = await supabase.storage.listBuckets();
+    if (error) {
+      errors.push(`listBuckets failed: ${error.message}`);
+    } else {
+      canConnect = true;
+      const names = (data || []).map((b) => b.name);
+      console.log('📦 Existing buckets:', names);
+
+      const required = Object.values(STORAGE_BUCKETS);
+      const missing = required.filter((b) => !names.includes(b));
+      if (missing.length > 0) {
+        errors.push(`Missing buckets: ${missing.join(', ')}`);
+      } else {
+        bucketsExist = true;
+      }
+    }
+  } catch (e) {
+    errors.push(`Connection failed: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  // Test 2: Can we upload a tiny test file?
+  if (bucketsExist) {
+    try {
+      const testBlob = new Blob(['test'], { type: 'text/plain' });
+      const { error } = await supabase.storage
+        .from(STORAGE_BUCKETS.VOICE_NOTES)
+        .upload('__health_check__.txt', testBlob, { upsert: true });
+
+      if (error) {
+        errors.push(`Upload test failed: ${error.message}`);
+      } else {
+        canUpload = true;
+        // Clean up
+        await supabase.storage.from(STORAGE_BUCKETS.VOICE_NOTES).remove(['__health_check__.txt']);
+      }
+    } catch (e) {
+      errors.push(`Upload test exception: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  const result = { canConnect, bucketsExist, canUpload, errors };
+  console.log('🔍 Storage diagnosis:', result);
+  return result;
+}
+
 export default supabase;
