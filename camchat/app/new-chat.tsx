@@ -31,6 +31,7 @@ export default function NewChatScreen() {
 
   const {
     registeredContacts,
+    contacts,
     isLoading,
     isSyncing,
     hasPermission,
@@ -41,12 +42,20 @@ export default function NewChatScreen() {
 
   const { startChat } = useChat();
 
-  // Auto-sync contacts on mount if we have permission but no contacts
+  // Auto-sync only when we have no cached contacts at all. Cached contacts +
+  // the hook's own TTL throttle prevent the slow device sync running on every
+  // open (which made opening this screen take ~30s).
   useEffect(() => {
-    if (hasPermission && registeredContacts.length === 0 && !isSyncing && !isLoading) {
+    if (
+      hasPermission &&
+      registeredContacts.length === 0 &&
+      contacts.length === 0 &&
+      !isSyncing &&
+      !isLoading
+    ) {
       sync();
     }
-  }, [hasPermission, registeredContacts.length, isSyncing, isLoading, sync]);
+  }, [hasPermission, registeredContacts.length, contacts.length, isSyncing, isLoading, sync]);
 
   const filteredContacts = registeredContacts.filter(
     (contact) =>
