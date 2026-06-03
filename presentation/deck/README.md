@@ -23,13 +23,29 @@ Or simply open `index.html` directly in a browser (Chrome/Edge/Firefox/Safari).
 - **F** — fullscreen · **Esc / O** — slide overview · **S** — speaker view
 - **?** — keyboard help
 
-### Export to PDF
-Open with `?print-pdf` appended to the URL, then use the browser's *Print → Save as PDF*
-(A4/Letter, Landscape, background graphics ON):
+### Get the PDF
+A ready-made, pixel-perfect PDF is already provided:
 
 ```
-http://localhost:8088/?print-pdf
+presentation/CamChat_System_Presentation.pdf   (19 pages, 16:9)
 ```
+
+That file is the recommended way to share/print — it reproduces the dark,
+full-bleed design exactly.
+
+**To regenerate it** (after editing slides), serve the deck and run the builder:
+
+```bash
+python3 -m http.server 8088 --directory .   # terminal 1
+npm install puppeteer                        # one-off
+node build-pdf.js                            # terminal 2  -> ../CamChat_System_Presentation.pdf
+```
+
+> Note on `?print-pdf`: reveal.js has a built-in print mode
+> (`http://localhost:8088/?print-pdf`, then browser *Print → Save as PDF*,
+> Landscape, background graphics ON). It works, but because this deck is a
+> full-bleed dark design, the browser's print engine reflows it less faithfully
+> than the screenshot-based `build-pdf.js`. Prefer the prebuilt PDF.
 
 ## What's inside (19 slides)
 1. Title · 2. Agenda · 3. Introduction (purpose & scope) ·
