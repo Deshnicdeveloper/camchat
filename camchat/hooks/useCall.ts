@@ -90,10 +90,6 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const callStartTimeRef = useRef<number>(0);
 
-  // Ref for isConnected to avoid stale closures
-  const isConnectedRef = useRef(isConnected);
-  isConnectedRef.current = isConnected;
-
   // State
   const [isAgoraAvailable, setIsAgoraAvailable] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -101,6 +97,10 @@ export function useCall(options: UseCallOptions = {}): UseCallReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [remoteUid, setRemoteUid] = useState<number | null>(null);
   const [networkQuality, setNetworkQuality] = useState<'excellent' | 'good' | 'poor' | 'unknown'>('unknown');
+
+  // Ref mirror of isConnected to avoid stale closures in callbacks/timers
+  const isConnectedRef = useRef(isConnected);
+  isConnectedRef.current = isConnected;
 
   // Zustand store
   const {
