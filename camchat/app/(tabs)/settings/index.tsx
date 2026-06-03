@@ -83,8 +83,11 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Profile Section */}
-        <Pressable style={styles.profileSection} onPress={() => setQrModalVisible(true)}>
+        {/* Profile Section — tap info to edit, QR icon for QR code */}
+        <Pressable
+          style={styles.profileSection}
+          onPress={() => router.push('/(tabs)/settings/edit-profile')}
+        >
           <View style={styles.avatar}>
             {userAvatar ? (
               <Image source={{ uri: userAvatar }} style={styles.avatarImage} contentFit="cover" transition={200} />
@@ -96,25 +99,64 @@ export default function SettingsScreen() {
             <Text style={styles.profileName}>{userName}</Text>
             <Text style={styles.profileAbout} numberOfLines={1}>{userAbout}</Text>
           </View>
-          <Ionicons name="qr-code-outline" size={24} color={Colors.primary} />
+          <Pressable onPress={() => setQrModalVisible(true)} hitSlop={12}>
+            <Ionicons name="qr-code-outline" size={24} color={Colors.primary} />
+          </Pressable>
         </Pressable>
 
         {/* Settings Sections */}
         <View style={styles.section}>
-          <SettingsItem icon="person-outline" label={t('settings.account')} />
-          <SettingsItem icon="lock-closed-outline" label={t('settings.privacy')} />
-          <SettingsItem icon="shield-checkmark-outline" label={t('settings.security')} />
+          <SettingsItem
+            icon="person-outline"
+            label={t('settings.editProfile')}
+            onPress={() => router.push('/(tabs)/settings/edit-profile')}
+          />
+          <SettingsItem
+            icon="key-outline"
+            label={t('settings.account')}
+            onPress={() => router.push('/(tabs)/settings/account')}
+          />
+          <SettingsItem
+            icon="lock-closed-outline"
+            label={t('settings.privacy')}
+            onPress={() => router.push('/(tabs)/settings/privacy')}
+          />
+          <SettingsItem
+            icon="shield-checkmark-outline"
+            label={t('settings.security')}
+            onPress={() => router.push('/(tabs)/settings/security')}
+          />
         </View>
 
         <View style={styles.section}>
-          <SettingsItem icon="chatbubble-outline" label={t('settings.chatsSettings')} />
-          <SettingsItem icon="notifications-outline" label={t('settings.notifications')} />
-          <SettingsItem icon="server-outline" label={t('settings.storage')} />
+          <SettingsItem
+            icon="chatbubble-outline"
+            label={t('settings.chatsSettings')}
+            onPress={() => router.push('/(tabs)/settings/chats')}
+          />
+          <SettingsItem
+            icon="notifications-outline"
+            label={t('settings.notifications')}
+            onPress={() => router.push('/(tabs)/settings/notifications')}
+          />
+          <SettingsItem
+            icon="server-outline"
+            label={t('settings.storage')}
+            onPress={() => router.push('/(tabs)/settings/storage')}
+          />
         </View>
 
         <View style={styles.section}>
-          <SettingsItem icon="language-outline" label={t('settings.language')} />
-          <SettingsItem icon="help-circle-outline" label={t('settings.help')} />
+          <SettingsItem
+            icon="language-outline"
+            label={t('settings.language')}
+            onPress={() => router.push('/(tabs)/settings/language')}
+          />
+          <SettingsItem
+            icon="help-circle-outline"
+            label={t('settings.help')}
+            onPress={() => router.push('/(tabs)/settings/help')}
+          />
         </View>
 
         <View style={styles.section}>

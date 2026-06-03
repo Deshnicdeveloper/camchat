@@ -163,6 +163,43 @@ const translations = {
       reportBug: 'Report a Bug',
       logout: 'Log Out',
       editProfile: 'Edit Profile',
+      // Sub-screen subtitles
+      accountSubtitle: 'Manage your account information',
+      privacySubtitle: 'Control what others can see',
+      securitySubtitle: 'Keep your account safe',
+      notificationsSubtitle: 'Manage how you get notified',
+      chatsSubtitle: 'Customize your chat experience',
+      storageSubtitle: 'Manage storage and data usage',
+      languageSubtitle: 'Choose your preferred language',
+      helpSubtitle: 'Get answers and contact support',
+      editProfileSubtitle: 'Update your name, photo and about',
+      // Account
+      phoneNumber: 'Phone Number',
+      deleteAccount: 'Delete Account',
+      // Privacy
+      lastSeenOnline: 'Last Seen & Online',
+      readReceipts: 'Read Receipts',
+      readReceiptsDesc: "If turned off, you won't send or receive read receipts.",
+      profilePhotoVisible: 'Show Profile Photo',
+      onlineStatusVisible: 'Show Online Status',
+      // Notifications
+      inAppSounds: 'In-App Sounds',
+      vibrate: 'Vibrate',
+      // Chats
+      enterToSend: 'Enter is Send',
+      mediaAutoDownload: 'Media Auto-Download',
+      // Security
+      securityNotifications: 'Security Notifications',
+      encryptionInfo: 'Your personal messages stay between you and the people you chat with.',
+      // Storage
+      clearCache: 'Clear Cache',
+      cacheCleared: 'Cache cleared',
+      // Language
+      english: 'English',
+      french: 'French',
+      // General
+      profileUpdated: 'Profile updated',
+      comingSoon: 'This feature is coming soon.',
     },
 
     // Notifications
@@ -415,6 +452,43 @@ const translations = {
       reportBug: 'Signaler un bug',
       logout: 'Déconnexion',
       editProfile: 'Modifier le profil',
+      // Sub-screen subtitles
+      accountSubtitle: 'Gérer les informations de votre compte',
+      privacySubtitle: 'Contrôlez ce que les autres peuvent voir',
+      securitySubtitle: 'Gardez votre compte en sécurité',
+      notificationsSubtitle: 'Gérez vos notifications',
+      chatsSubtitle: 'Personnalisez votre expérience de discussion',
+      storageSubtitle: 'Gérez le stockage et les données',
+      languageSubtitle: 'Choisissez votre langue préférée',
+      helpSubtitle: 'Obtenez de l\'aide et contactez le support',
+      editProfileSubtitle: 'Modifiez votre nom, photo et description',
+      // Account
+      phoneNumber: 'Numéro de téléphone',
+      deleteAccount: 'Supprimer le compte',
+      // Privacy
+      lastSeenOnline: 'Vu en dernier et en ligne',
+      readReceipts: 'Confirmations de lecture',
+      readReceiptsDesc: "Si désactivé, vous n'enverrez ni ne recevrez de confirmations de lecture.",
+      profilePhotoVisible: 'Afficher la photo de profil',
+      onlineStatusVisible: 'Afficher le statut en ligne',
+      // Notifications
+      inAppSounds: 'Sons dans l\'application',
+      vibrate: 'Vibration',
+      // Chats
+      enterToSend: 'Entrée pour envoyer',
+      mediaAutoDownload: 'Téléchargement auto des médias',
+      // Security
+      securityNotifications: 'Notifications de sécurité',
+      encryptionInfo: 'Vos messages personnels restent entre vous et vos correspondants.',
+      // Storage
+      clearCache: 'Vider le cache',
+      cacheCleared: 'Cache vidé',
+      // Language
+      english: 'Anglais',
+      french: 'Français',
+      // General
+      profileUpdated: 'Profil mis à jour',
+      comingSoon: 'Cette fonctionnalité arrive bientôt.',
     },
 
     // Notifications

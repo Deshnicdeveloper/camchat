@@ -14,6 +14,15 @@ export default function SettingsLayout() {
       }}
     >
       <Stack.Screen name="index" />
+      <Stack.Screen name="edit-profile" />
+      <Stack.Screen name="account" />
+      <Stack.Screen name="privacy" />
+      <Stack.Screen name="security" />
+      <Stack.Screen name="chats" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="storage" />
+      <Stack.Screen name="language" />
+      <Stack.Screen name="help" />
     </Stack>
   );
 }
