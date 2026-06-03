@@ -16,6 +16,9 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    // Required by newer expo-notifications NotificationBehavior
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
