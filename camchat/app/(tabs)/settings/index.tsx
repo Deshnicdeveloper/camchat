@@ -3,50 +3,55 @@
  * User settings and preferences
  */
 
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Switch } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { router } from 'expo-router';
-import { Colors, Typography, Spacing, Radius } from '../../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../../constants';
 import { t } from '../../../lib/i18n';
 import QRCodeModal from '../../../components/QRCodeModal';
 import { useAuthStore } from '../../../store/authStore';
 import { useAuth } from '../../../hooks/useAuth';
-
-interface SettingsItemProps {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  onPress?: () => void;
-  showChevron?: boolean;
-  color?: string;
-}
-
-function SettingsItem({ icon, label, onPress, showChevron = true, color }: SettingsItemProps) {
-  return (
-    <Pressable style={styles.settingsItem} onPress={onPress}>
-      <View style={[styles.iconContainer, color ? { backgroundColor: color + '20' } : {}]}>
-        <Ionicons name={icon} size={22} color={color || Colors.primary} />
-      </View>
-      <Text style={[styles.settingsLabel, color ? { color } : {}]}>{label}</Text>
-      {showChevron && (
-        <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
-      )}
-    </Pressable>
-  );
-}
+import { useColors } from '../../../hooks/useColors';
 
 export default function SettingsScreen() {
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const { user } = useAuthStore();
   const { logout } = useAuth();
+  const { colors, isDark, setTheme } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Get user data from store
   const userId = user?.uid || 'unknown';
   const userName = user?.displayName || 'User';
   const userAbout = user?.about || t('auth.defaultAbout');
   const userAvatar = user?.avatarUrl || null;
+
+  const SettingsItem = ({
+    icon,
+    label,
+    onPress,
+    showChevron = true,
+    color,
+  }: {
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    onPress?: () => void;
+    showChevron?: boolean;
+    color?: string;
+  }) => (
+    <Pressable style={styles.settingsItem} onPress={onPress}>
+      <View style={[styles.iconContainer, color ? { backgroundColor: color + '20' } : {}]}>
+        <Ionicons name={icon} size={22} color={color || colors.primary} />
+      </View>
+      <Text style={[styles.settingsLabel, color ? { color } : {}]}>{label}</Text>
+      {showChevron && (
+        <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+      )}
+    </Pressable>
+  );
 
   const handleLogout = () => {
     Alert.alert(
@@ -75,11 +80,7 @@ export default function SettingsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t('settings.title')}</Text>
-        <Ionicons
-          name="search-outline"
-          size={24}
-          color={Colors.textInverse}
-        />
+        <Ionicons name="search-outline" size={24} color={colors.textInverse} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -92,7 +93,7 @@ export default function SettingsScreen() {
             {userAvatar ? (
               <Image source={{ uri: userAvatar }} style={styles.avatarImage} contentFit="cover" transition={200} />
             ) : (
-              <Ionicons name="person" size={40} color={Colors.textSecondary} />
+              <Ionicons name="person" size={40} color={colors.textSecondary} />
             )}
           </View>
           <View style={styles.profileInfo}>
@@ -100,11 +101,11 @@ export default function SettingsScreen() {
             <Text style={styles.profileAbout} numberOfLines={1}>{userAbout}</Text>
           </View>
           <Pressable onPress={() => setQrModalVisible(true)} hitSlop={12}>
-            <Ionicons name="qr-code-outline" size={24} color={Colors.primary} />
+            <Ionicons name="qr-code-outline" size={24} color={colors.primary} />
           </Pressable>
         </Pressable>
 
-        {/* Settings Sections */}
+        {/* Account */}
         <View style={styles.section}>
           <SettingsItem
             icon="person-outline"
@@ -128,6 +129,7 @@ export default function SettingsScreen() {
           />
         </View>
 
+        {/* Chats / notifications / storage */}
         <View style={styles.section}>
           <SettingsItem
             icon="chatbubble-outline"
@@ -146,6 +148,24 @@ export default function SettingsScreen() {
           />
         </View>
 
+        {/* Appearance */}
+        <View style={styles.section}>
+          <View style={styles.settingsItem}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="moon-outline" size={22} color={colors.primary} />
+            </View>
+            <Text style={styles.settingsLabel}>{t('settings.darkMode')}</Text>
+            <Switch
+              value={isDark}
+              onValueChange={(v) => setTheme(v ? 'dark' : 'light')}
+              trackColor={{ false: colors.surfaceAlt, true: colors.primaryLight }}
+              thumbColor={isDark ? colors.primary : '#FFFFFF'}
+              ios_backgroundColor={colors.surfaceAlt}
+            />
+          </View>
+        </View>
+
+        {/* Language / help */}
         <View style={styles.section}>
           <SettingsItem
             icon="language-outline"
@@ -159,11 +179,12 @@ export default function SettingsScreen() {
           />
         </View>
 
+        {/* Logout */}
         <View style={styles.section}>
           <SettingsItem
             icon="log-out-outline"
             label={t('settings.logout')}
-            color={Colors.error}
+            color={colors.error}
             showChevron={false}
             onPress={handleLogout}
           />
@@ -186,108 +207,110 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.primary,
-  },
-  headerTitle: {
-    fontFamily: Typography.fontFamily.bold,
-    fontSize: Typography.size.xl,
-    color: Colors.textInverse,
-  },
-  content: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.lg,
-    backgroundColor: Colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-  },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: Colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  profileInfo: {
-    flex: 1,
-    marginLeft: Spacing.md,
-  },
-  profileName: {
-    fontFamily: Typography.fontFamily.semibold,
-    fontSize: Typography.size.lg,
-    color: Colors.textPrimary,
-  },
-  profileAbout: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  section: {
-    backgroundColor: Colors.background,
-    marginTop: Spacing.md,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Colors.divider,
-  },
-  settingsItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-  },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.primaryFaded,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  settingsLabel: {
-    flex: 1,
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.md,
-    color: Colors.textPrimary,
-    marginLeft: Spacing.md,
-  },
-  versionContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xxl,
-  },
-  versionText: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
-  },
-  versionSubtext: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.xs,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
-  },
-});
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.primary,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.md,
+      backgroundColor: colors.primary,
+    },
+    headerTitle: {
+      fontFamily: Typography.fontFamily.bold,
+      fontSize: Typography.size.xl,
+      color: colors.textInverse,
+    },
+    content: {
+      flex: 1,
+      backgroundColor: colors.surface,
+    },
+    profileSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: Spacing.lg,
+      backgroundColor: colors.background,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    avatar: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    avatarImage: {
+      width: '100%',
+      height: '100%',
+    },
+    profileInfo: {
+      flex: 1,
+      marginLeft: Spacing.md,
+    },
+    profileName: {
+      fontFamily: Typography.fontFamily.semibold,
+      fontSize: Typography.size.lg,
+      color: colors.textPrimary,
+    },
+    profileAbout: {
+      fontFamily: Typography.fontFamily.regular,
+      fontSize: Typography.size.sm,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    section: {
+      backgroundColor: colors.background,
+      marginTop: Spacing.md,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: colors.divider,
+    },
+    settingsItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.md,
+      minHeight: 56,
+      backgroundColor: colors.background,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    iconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: Radius.sm,
+      backgroundColor: colors.primaryFaded,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    settingsLabel: {
+      flex: 1,
+      fontFamily: Typography.fontFamily.regular,
+      fontSize: Typography.size.md,
+      color: colors.textPrimary,
+      marginLeft: Spacing.md,
+    },
+    versionContainer: {
+      alignItems: 'center',
+      paddingVertical: Spacing.xxl,
+    },
+    versionText: {
+      fontFamily: Typography.fontFamily.regular,
+      fontSize: Typography.size.sm,
+      color: colors.textSecondary,
+    },
+    versionSubtext: {
+      fontFamily: Typography.fontFamily.regular,
+      fontSize: Typography.size.xs,
+      color: colors.textSecondary,
+      marginTop: Spacing.xs,
+    },
+  });

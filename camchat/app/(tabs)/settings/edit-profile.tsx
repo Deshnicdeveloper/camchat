@@ -3,7 +3,7 @@
  * Lets the user update their display name, about text and avatar.
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,13 +21,16 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { Colors, Typography, Spacing, Radius } from '../../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../../constants';
 import { t } from '../../../lib/i18n';
 import { useAuth } from '../../../hooks/useAuth';
+import { useColors } from '../../../hooks/useColors';
 import { uploadAvatarFromUri } from '../../../lib/storage';
 
 export default function EditProfileScreen() {
   const { user, updateProfile } = useAuth();
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [about, setAbout] = useState(user?.about || '');
@@ -98,7 +101,7 @@ export default function EditProfileScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={10}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
         </Pressable>
         <Text style={styles.headerTitle}>{t('settings.editProfile')}</Text>
       </View>
@@ -118,11 +121,11 @@ export default function EditProfileScreen() {
               {avatarToShow ? (
                 <Image source={{ uri: avatarToShow }} style={styles.avatarImage} contentFit="cover" />
               ) : (
-                <Ionicons name="person" size={48} color={Colors.textSecondary} />
+                <Ionicons name="person" size={48} color={colors.textSecondary} />
               )}
             </View>
             <View style={styles.cameraIcon}>
-              <Ionicons name="camera" size={18} color={Colors.textInverse} />
+              <Ionicons name="camera" size={18} color={colors.textInverse} />
             </View>
           </Pressable>
 
@@ -134,7 +137,7 @@ export default function EditProfileScreen() {
                 value={displayName}
                 onChangeText={setDisplayName}
                 placeholder={t('auth.displayName')}
-                placeholderTextColor={Colors.textSecondary}
+                placeholderTextColor={colors.textSecondary}
                 maxLength={25}
               />
             </View>
@@ -146,7 +149,7 @@ export default function EditProfileScreen() {
                 value={about}
                 onChangeText={setAbout}
                 placeholder={t('auth.defaultAbout')}
-                placeholderTextColor={Colors.textSecondary}
+                placeholderTextColor={colors.textSecondary}
                 maxLength={139}
                 multiline
               />
@@ -161,7 +164,7 @@ export default function EditProfileScreen() {
             disabled={!isValid || isSaving}
           >
             {isSaving ? (
-              <ActivityIndicator color={Colors.textInverse} />
+              <ActivityIndicator color={colors.textInverse} />
             ) : (
               <Text style={styles.saveButtonText}>{t('common.save')}</Text>
             )}
@@ -172,8 +175,9 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.primary },
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.primary },
   flex: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -191,22 +195,22 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: Typography.fontFamily.bold,
     fontSize: Typography.size.xl,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     marginLeft: Spacing.xs,
   },
-  body: { flex: 1, backgroundColor: Colors.surface },
+  body: { flex: 1, backgroundColor: colors.surface },
   bodyContent: { padding: Spacing.lg, alignItems: 'center' },
   avatarContainer: { position: 'relative', marginVertical: Spacing.lg },
   avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
     borderWidth: 3,
-    borderColor: Colors.primaryFaded,
+    borderColor: colors.primaryFaded,
   },
   avatarImage: { width: '100%', height: '100%' },
   cameraIcon: {
@@ -216,15 +220,15 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: Colors.surface,
+    borderColor: colors.surface,
   },
   card: {
     width: '100%',
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderRadius: Radius.lg,
     overflow: 'hidden',
   },
@@ -232,26 +236,26 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.sm,
-    color: Colors.primary,
+    color: colors.primary,
     marginBottom: Spacing.xs,
   },
   input: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     paddingVertical: Spacing.xs,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.divider,
+    backgroundColor: colors.divider,
     marginHorizontal: Spacing.lg,
   },
   footer: {
     padding: Spacing.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
   saveButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     paddingVertical: Spacing.lg,
     borderRadius: Radius.full,
     alignItems: 'center',
@@ -260,6 +264,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
 });

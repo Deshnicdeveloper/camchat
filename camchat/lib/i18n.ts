@@ -200,6 +200,7 @@ const translations = {
       // General
       profileUpdated: 'Profile updated',
       comingSoon: 'This feature is coming soon.',
+      darkMode: 'Dark Mode',
     },
 
     // Notifications
@@ -489,6 +490,7 @@ const translations = {
       // General
       profileUpdated: 'Profil mis à jour',
       comingSoon: 'Cette fonctionnalité arrive bientôt.',
+      darkMode: 'Mode sombre',
     },
 
     // Notifications

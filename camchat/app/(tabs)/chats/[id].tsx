@@ -41,6 +41,7 @@ import { useVoicePlayback } from '../../../hooks/useVoicePlayback';
 import { useVoiceNoteCache } from '../../../hooks/useVoiceNoteCache';
 import { usePendingMessages } from '../../../hooks/usePendingMessages';
 import { useAuthStore } from '../../../store/authStore';
+import { useChatStore } from '../../../store/chatStore';
 import { getChatById } from '../../../lib/chat';
 import { getUsersByIds } from '../../../lib/contacts';
 import { uploadChatMediaFromUri } from '../../../lib/storage';
@@ -112,65 +113,75 @@ export default function ChatDetailScreen() {
     retryPending,
   } = usePendingMessages();
 
-  // Load chat data
+  // Load chat data — render instantly from cache, then refresh in background.
   useEffect(() => {
-    const loadChat = async () => {
-      if (!chatId) return;
+    if (!chatId) return;
+    let cancelled = false;
 
-      setIsLoadingChat(true);
-      const result = await getChatById(chatId);
+    // Resolve participants for a chat, using the cache and (optionally) the network.
+    const resolveParticipants = async (chatData: Chat, allowFetch: boolean) => {
+      const participantIds = chatData.participants.filter((p) => p !== user?.uid);
+      if (participantIds.length === 0) return;
 
-      if (result.success && result.chat) {
-        setChat(result.chat);
-
-        // Get participants (excluding current user)
-        const participantIds = result.chat.participants.filter(
-          (p) => p !== user?.uid
-        );
-
-        if (participantIds.length > 0) {
-          // First try to get from cache, then fetch missing from Firestore
-          const participantMap = new Map<string, UserProfile>();
-          const missingIds: string[] = [];
-
-          for (const id of participantIds) {
-            const cached = getParticipant(id);
-            if (cached) {
-              participantMap.set(id, cached);
-            } else {
-              missingIds.push(id);
-            }
-          }
-
-          // Fetch missing participants from Firestore
-          if (missingIds.length > 0) {
-            console.log('📡 Fetching participant data from Firestore:', missingIds);
-            const users = await getUsersByIds(missingIds);
-            for (const u of users) {
-              const profile: UserProfile = {
-                uid: u.uid,
-                displayName: u.displayName,
-                avatarUrl: u.avatarUrl,
-                about: u.about,
-                isOnline: u.isOnline,
-                lastSeen: u.lastSeen,
-              };
-              participantMap.set(u.uid, profile);
-            }
-          }
-
-          setParticipants(participantMap);
-
-          // For direct chats, also set the single participant
-          if (result.chat.type === 'direct' && participantIds.length === 1) {
-            setParticipant(participantMap.get(participantIds[0]) || null);
-          }
+      const participantMap = new Map<string, UserProfile>();
+      const missingIds: string[] = [];
+      for (const id of participantIds) {
+        const cached = getParticipant(id);
+        if (cached) {
+          participantMap.set(id, cached);
+        } else {
+          missingIds.push(id);
         }
       }
-      setIsLoadingChat(false);
+
+      // Only hit Firestore for profiles we don't already have cached
+      if (missingIds.length > 0 && allowFetch) {
+        const users = await getUsersByIds(missingIds);
+        if (cancelled) return;
+        for (const u of users) {
+          participantMap.set(u.uid, {
+            uid: u.uid,
+            displayName: u.displayName,
+            avatarUrl: u.avatarUrl,
+            about: u.about,
+            isOnline: u.isOnline,
+            lastSeen: u.lastSeen,
+          });
+        }
+      }
+
+      if (participantMap.size > 0) {
+        setParticipants(participantMap);
+        if (chatData.type === 'direct' && participantIds.length === 1) {
+          setParticipant(participantMap.get(participantIds[0]) || null);
+        }
+      }
     };
 
-    loadChat();
+    // 1) Instant paint from the cached chat list (no network round-trip)
+    const cachedChat = useChatStore.getState().chats.find((c) => c.id === chatId);
+    if (cachedChat) {
+      setChat(cachedChat);
+      resolveParticipants(cachedChat, false);
+      setIsLoadingChat(false);
+    } else {
+      setIsLoadingChat(true);
+    }
+
+    // 2) Background refresh from Firestore (fills/updates the cache)
+    (async () => {
+      const result = await getChatById(chatId);
+      if (cancelled) return;
+      if (result.success && result.chat) {
+        setChat(result.chat);
+        await resolveParticipants(result.chat, true);
+      }
+      setIsLoadingChat(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [chatId, user?.uid, getParticipant]);
 
   // Messages hook

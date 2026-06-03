@@ -50,4 +50,56 @@ export const Colors = {
 } as const;
 
 export type ColorKeys = keyof typeof Colors;
+
+/**
+ * Dark theme palette — same keys as Colors so any screen can swap between them
+ * via the useColors() hook. Brand blue is kept for accents; surfaces and text
+ * are inverted for a comfortable dark UI.
+ */
+export const DarkColors: Record<ColorKeys, string> = {
+  // Primary brand colors
+  primary: '#5B7CFF',           // Lighter Egyptian Blue for accents on dark
+  primaryLight: '#8198FF',
+  primaryDark: '#1034A6',
+  primaryFaded: '#5B7CFF26',    // ~15% opacity for chips/backgrounds
+
+  // Background colors
+  background: '#121218',        // App background (near-black)
+  surface: '#1C1C24',           // Card/input background
+  surfaceAlt: '#2A2A33',        // Dividers, skeleton loaders
+
+  // Text colors
+  textPrimary: '#F3F4F6',
+  textSecondary: '#9CA3AF',
+  textInverse: '#FFFFFF',
+
+  // Message bubble colors
+  bubble_sent: '#3D5FC4',
+  bubble_received: '#26262F',
+  bubble_sent_text: '#FFFFFF',
+  bubble_received_text: '#F3F4F6',
+
+  // Semantic colors
+  success: '#22C55E',
+  warning: '#F59E0B',
+  error: '#F87171',
+  info: '#60A5FA',
+
+  // Accent colors
+  accent: '#10B981',
+
+  // Message received bubble
+  messageReceived: '#26262F',
+
+  // UI element colors
+  divider: '#2E2E38',
+  overlay: 'rgba(0,0,0,0.6)',
+
+  // Cameroonian flag accent palette
+  cam_green: '#007A5E',
+  cam_red: '#CE1126',
+  cam_yellow: '#FCD116',
+};
+
+export type ColorPalette = Record<ColorKeys, string>;
 export default Colors;

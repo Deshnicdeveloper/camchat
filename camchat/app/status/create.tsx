@@ -78,8 +78,8 @@ export default function StatusCreateScreen() {
         result = await ImagePicker.launchCameraAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.All,
           quality: 0.8,
-          allowsEditing: true,
-          aspect: [9, 16],
+          // Don't force a crop — keep the original aspect ratio (e.g. 9:16)
+          allowsEditing: false,
         });
       } else {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -93,8 +93,8 @@ export default function StatusCreateScreen() {
         result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.All,
           quality: 0.8,
-          allowsEditing: true,
-          aspect: [9, 16],
+          // Don't force a crop — keep the original aspect ratio (e.g. 9:16)
+          allowsEditing: false,
         });
       }
 

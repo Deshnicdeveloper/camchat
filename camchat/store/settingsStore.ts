@@ -31,15 +31,19 @@ export interface SecuritySettings {
   securityNotifications: boolean;
 }
 
+export type ThemePreference = 'light' | 'dark' | 'system';
+
 interface SettingsState {
   privacy: PrivacySettings;
   notifications: NotificationSettings;
   chats: ChatSettings;
   security: SecuritySettings;
+  theme: ThemePreference;
   setPrivacy: (updates: Partial<PrivacySettings>) => void;
   setNotifications: (updates: Partial<NotificationSettings>) => void;
   setChats: (updates: Partial<ChatSettings>) => void;
   setSecurity: (updates: Partial<SecuritySettings>) => void;
+  setTheme: (theme: ThemePreference) => void;
 }
 
 const initialState = {
@@ -62,6 +66,7 @@ const initialState = {
   security: {
     securityNotifications: false,
   },
+  theme: 'light' as ThemePreference,
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -76,6 +81,7 @@ export const useSettingsStore = create<SettingsState>()(
         set((state) => ({ chats: { ...state.chats, ...updates } })),
       setSecurity: (updates) =>
         set((state) => ({ security: { ...state.security, ...updates } })),
+      setTheme: (theme) => set({ theme }),
     }),
     {
       name: 'camchat-settings',

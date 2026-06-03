@@ -3,14 +3,15 @@
  */
 
 import { Stack } from 'expo-router';
-import { Colors } from '../../../constants';
+import { useColors } from '../../../hooks/useColors';
 
 export default function SettingsLayout() {
+  const { colors } = useColors();
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: Colors.background },
+        contentStyle: { backgroundColor: colors.background },
       }}
     >
       <Stack.Screen name="index" />

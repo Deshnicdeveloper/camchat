@@ -62,7 +62,11 @@ export function useMessages({ chatId, participants }: UseMessagesParams): UseMes
   const { user } = useAuthStore();
   const { messages: storeMessages, setMessages, addMessage } = useChatStore();
 
-  const [isLoading, setIsLoading] = useState(true);
+  // Start in "loading" only when we have no cached messages for this chat, so
+  // reopening a chat shows its cached messages instantly without a loader flash.
+  const [isLoading, setIsLoading] = useState(
+    () => (storeMessages[chatId]?.length ?? 0) === 0
+  );
   const [isSending, setIsSending] = useState(false);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
