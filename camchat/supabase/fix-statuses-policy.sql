@@ -45,3 +45,34 @@ create policy "statuses public update" on storage.objects
 
 create policy "statuses public delete" on storage.objects
   for delete to public using (bucket_id = 'statuses');
+
+-- ============================================================================
+-- If uploads STILL return 403 after the above, the blocker is a RESTRICTIVE
+-- policy (permissive = f). Restrictive policies are AND-ed and only ever
+-- subtract access; a Firebase-auth app on public buckets should have NONE.
+-- This removes every restrictive policy on storage.objects and guarantees a
+-- single clean permissive grant for the statuses bucket.
+-- ============================================================================
+
+-- Inspect (look for permissive = f):
+-- select policyname, cmd, permissive, roles, with_check
+-- from pg_policies
+-- where schemaname='storage' and tablename='objects'
+-- order by permissive, cmd;
+
+do $$
+declare r record;
+begin
+  for r in
+    select policyname from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and not permissive
+  loop
+    execute format('drop policy %I on storage.objects', r.policyname);
+  end loop;
+end $$;
+
+drop policy if exists "statuses permissive all" on storage.objects;
+create policy "statuses permissive all" on storage.objects
+  as permissive for all to public
+  using (bucket_id = 'statuses')
+  with check (bucket_id = 'statuses');
