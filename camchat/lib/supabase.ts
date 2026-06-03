@@ -92,4 +92,47 @@ export const STORAGE_BUCKETS = {
 
 export type StorageBucket = typeof STORAGE_BUCKETS[keyof typeof STORAGE_BUCKETS];
 
+/**
+ * Ensure all required storage buckets exist.
+ * Call this once on app startup. If buckets already exist, this is a no-op.
+ * If they don't exist, it creates them as public buckets.
+ */
+export async function ensureStorageBuckets(): Promise<void> {
+  const requiredBuckets = [
+    { name: STORAGE_BUCKETS.AVATARS, public: true },
+    { name: STORAGE_BUCKETS.CHAT_MEDIA, public: true },
+    { name: STORAGE_BUCKETS.VOICE_NOTES, public: true },
+    { name: STORAGE_BUCKETS.STATUSES, public: true },
+  ];
+
+  try {
+    const { data: existingBuckets, error: listError } = await supabase.storage.listBuckets();
+
+    if (listError) {
+      console.warn('⚠️ Could not list storage buckets:', listError.message);
+      return;
+    }
+
+    const existingNames = new Set((existingBuckets || []).map((b) => b.name));
+
+    for (const bucket of requiredBuckets) {
+      if (!existingNames.has(bucket.name)) {
+        console.log(`📦 Creating storage bucket: ${bucket.name}`);
+        const { error: createError } = await supabase.storage.createBucket(bucket.name, {
+          public: bucket.public,
+          fileSizeLimit: 50 * 1024 * 1024, // 50MB
+        });
+
+        if (createError) {
+          console.warn(`⚠️ Could not create bucket "${bucket.name}":`, createError.message);
+        } else {
+          console.log(`✅ Created storage bucket: ${bucket.name}`);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Error ensuring storage buckets:', error);
+  }
+}
+
 export default supabase;

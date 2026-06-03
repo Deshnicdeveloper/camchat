@@ -4,7 +4,7 @@
  */
 
 export { app, auth, db } from './firebase';
-export { supabase, STORAGE_BUCKETS } from './supabase';
+export { supabase, STORAGE_BUCKETS, ensureStorageBuckets } from './supabase';
 export type { StorageBucket } from './supabase';
 export * from './firestore';
 export * from './storage';

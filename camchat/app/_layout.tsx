@@ -22,6 +22,7 @@ import {
   getLastNotificationResponse,
   handleNotificationTap,
 } from '../lib/notifications';
+import { ensureStorageBuckets } from '../lib/supabase';
 import type { NotificationData } from '../lib/notifications';
 
 // Prevent the splash screen from auto-hiding
@@ -91,6 +92,8 @@ export default function RootLayout() {
   useEffect(() => {
     if ((fontsLoaded || fontError) && isInitialized) {
       SplashScreen.hideAsync();
+      // Ensure Supabase storage buckets exist (non-blocking)
+      ensureStorageBuckets().catch(() => {});
     }
   }, [fontsLoaded, fontError, isInitialized]);
 

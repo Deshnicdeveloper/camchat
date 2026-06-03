@@ -50,7 +50,11 @@ export async function uploadFileFromUri(
 
     if (error) {
       console.error('❌ Upload error:', error);
-      return { success: false, error: error.message };
+      let errorMessage = error.message;
+      if (error.message.includes('schema') || error.message.includes('invalid') || error.message.includes('incompatible')) {
+        errorMessage = `Storage bucket "${bucket}" not configured. Go to Supabase Dashboard > Storage and create this bucket, or run ensureStorageBuckets().`;
+      }
+      return { success: false, error: errorMessage };
     }
 
     // Get the public URL
@@ -85,7 +89,11 @@ export async function uploadFile(
       });
 
     if (error) {
-      return { success: false, error: error.message };
+      let errorMessage = error.message;
+      if (error.message.includes('schema') || error.message.includes('invalid') || error.message.includes('incompatible')) {
+        errorMessage = `Storage bucket "${bucket}" not configured. Go to Supabase Dashboard > Storage and create this bucket, or run ensureStorageBuckets().`;
+      }
+      return { success: false, error: errorMessage };
     }
 
     // Get public URL
