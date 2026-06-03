@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 /**
  * Calls Screen
  * Displays call log history with ability to call back

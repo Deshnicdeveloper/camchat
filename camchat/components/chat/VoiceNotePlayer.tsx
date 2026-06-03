@@ -71,7 +71,7 @@ export const VoiceNotePlayer = memo(function VoiceNotePlayer({
   const displayTime = isPlaying ? duration - currentPosition : duration;
 
   // Color scheme based on sent/received
-  const colors = {
+  const tint = {
     playButton: isSent ? colors.textInverse : colors.primary,
     playButtonBg: isSent ? 'rgba(255,255,255,0.15)' : 'rgba(16,52,166,0.1)',
     waveformPlayed: isSent ? colors.textInverse : colors.primary,
@@ -104,8 +104,8 @@ export const VoiceNotePlayer = memo(function VoiceNotePlayer({
       // Show download progress
       return (
         <View style={styles.progressContainer}>
-          <ActivityIndicator size="small" color={colors.downloadIcon} />
-          <Text style={[styles.progressText, { color: colors.text }]}>
+          <ActivityIndicator size="small" color={tint.downloadIcon} />
+          <Text style={[styles.progressText, { color: tint.text }]}>
             {downloadProgress}%
           </Text>
         </View>
@@ -118,14 +118,14 @@ export const VoiceNotePlayer = memo(function VoiceNotePlayer({
         <Ionicons
           name="download-outline"
           size={22}
-          color={colors.downloadIcon}
+          color={tint.downloadIcon}
         />
       );
     }
 
     if (isLoading) {
       // Show loading spinner
-      return <ActivityIndicator size="small" color={colors.playButton} />;
+      return <ActivityIndicator size="small" color={tint.playButton} />;
     }
 
     // Show play/pause
@@ -133,7 +133,7 @@ export const VoiceNotePlayer = memo(function VoiceNotePlayer({
       <Ionicons
         name={isPlaying ? 'pause' : 'play'}
         size={22}
-        color={colors.playButton}
+        color={tint.playButton}
       />
     );
   };
@@ -142,7 +142,7 @@ export const VoiceNotePlayer = memo(function VoiceNotePlayer({
     <View style={styles.container}>
       {/* Play/Pause/Download Button */}
       <Pressable
-        style={[styles.playButton, { backgroundColor: colors.playButtonBg }]}
+        style={[styles.playButton, { backgroundColor: tint.playButtonBg }]}
         onPress={handleButtonPress}
         disabled={isDownloading || isLoading}
       >
@@ -158,12 +158,12 @@ export const VoiceNotePlayer = memo(function VoiceNotePlayer({
             : waveform.length;
 
           const barColor = !isDownloaded && !isDownloading
-            ? colors.waveformUnplayed // All gray if not downloaded
+            ? tint.waveformUnplayed // All gray if not downloaded
             : isDownloading && index < downloadedBars
-              ? colors.waveformPlayed // Downloaded portion
+              ? tint.waveformPlayed // Downloaded portion
               : index < playedBars
-                ? colors.waveformPlayed // Played portion
-                : colors.waveformUnplayed;
+                ? tint.waveformPlayed // Played portion
+                : tint.waveformUnplayed;
 
           return (
             <View
@@ -182,17 +182,17 @@ export const VoiceNotePlayer = memo(function VoiceNotePlayer({
 
       {/* Duration and Speed */}
       <View style={styles.infoContainer}>
-        <Text style={[styles.durationText, { color: colors.text }]}>
+        <Text style={[styles.durationText, { color: tint.text }]}>
           {formatTime(displayTime)}
         </Text>
 
         {/* Speed badge (only show when downloaded and playing or non-1x) */}
         {isDownloaded && (playbackSpeed !== 1 || isPlaying) && (
           <Pressable
-            style={[styles.speedBadge, { backgroundColor: colors.speedBadge }]}
+            style={[styles.speedBadge, { backgroundColor: tint.speedBadge }]}
             onPress={onSpeedToggle}
           >
-            <Text style={[styles.speedText, { color: colors.speedText }]}>
+            <Text style={[styles.speedText, { color: tint.speedText }]}>
               {playbackSpeed}x
             </Text>
           </Pressable>
