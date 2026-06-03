@@ -1,9 +1,9 @@
 /**
  * Root Layout
- * Handles font loading, splash screen, auth state, and navigation setup
+ * Handles font loading, splash screen, auth state, navigation, and push notifications
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import {
@@ -17,6 +17,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, View } from 'react-native';
 import { Colors } from '../constants';
 import { useAuthStore } from '../store/authStore';
+import {
+  setupNotificationListeners,
+  getLastNotificationResponse,
+  handleNotificationTap,
+} from '../lib/notifications';
+import type { NotificationData } from '../lib/notifications';
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -27,6 +33,7 @@ export default function RootLayout() {
   const navigationState = useRootNavigationState();
 
   const { isAuthenticated, isInitialized } = useAuthStore();
+  const notificationListenersSetup = useRef(false);
 
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -51,6 +58,34 @@ export default function RootLayout() {
       router.replace('/(auth)/welcome');
     }
   }, [isAuthenticated, isInitialized, segments, navigationState?.key]);
+
+  // Set up notification listeners when authenticated
+  useEffect(() => {
+    if (!isAuthenticated || !navigationState?.key || notificationListenersSetup.current) return;
+
+    notificationListenersSetup.current = true;
+
+    // Set up listeners for foreground and notification tap events
+    const cleanup = setupNotificationListeners((data: NotificationData) => {
+      // Only handle taps when the user is authenticated and on tabs
+      if (isAuthenticated) {
+        handleNotificationTap(data);
+      }
+    });
+
+    // Handle cold start: check if the app was opened by tapping a notification
+    getLastNotificationResponse().then((data) => {
+      if (data && isAuthenticated) {
+        // Small delay to ensure navigation is ready
+        setTimeout(() => handleNotificationTap(data), 500);
+      }
+    });
+
+    return () => {
+      cleanup();
+      notificationListenersSetup.current = false;
+    };
+  }, [isAuthenticated, navigationState?.key]);
 
   // Hide splash screen when fonts are loaded and auth is initialized
   useEffect(() => {

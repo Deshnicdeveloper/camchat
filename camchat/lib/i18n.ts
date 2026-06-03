@@ -165,6 +165,17 @@ const translations = {
       editProfile: 'Edit Profile',
     },
 
+    // Notifications
+    notifications: {
+      permissionRequired: 'Notification Permission',
+      permissionMessage: 'CamChat needs notification permission to alert you about new messages and calls.',
+      enableInSettings: 'Please enable notifications in your device settings.',
+      tokenRegistered: 'Notifications enabled',
+      incomingCall: 'Incoming call',
+      newMessage: 'New message',
+      statusReply: 'Replied to your status',
+    },
+
     // Groups
     groups: {
       newGroup: 'New Group',
@@ -404,6 +415,17 @@ const translations = {
       reportBug: 'Signaler un bug',
       logout: 'Déconnexion',
       editProfile: 'Modifier le profil',
+    },
+
+    // Notifications
+    notifications: {
+      permissionRequired: 'Permission de notification',
+      permissionMessage: 'CamChat a besoin de la permission de notification pour vous alerter des nouveaux messages et appels.',
+      enableInSettings: 'Veuillez activer les notifications dans les paramètres de votre appareil.',
+      tokenRegistered: 'Notifications activées',
+      incomingCall: 'Appel entrant',
+      newMessage: 'Nouveau message',
+      statusReply: 'A répondu à votre statut',
     },
 
     // Groups
