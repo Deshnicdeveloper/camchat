@@ -32,7 +32,11 @@ interface UseContactsReturn {
 
 export function useContacts(): UseContactsReturn {
   const { user } = useAuthStore();
-  const { contacts: storeContacts, setContacts, setLoading } = useChatStore();
+  const { contacts: storeContacts, setContacts, setLoading, lastSyncTime, setLastSyncTime } = useChatStore();
+
+  // Consider contacts "fresh" if synced within the last hour; avoids the slow
+  // device read + Firestore matching running on every screen open.
+  const SYNC_TTL_MS = 60 * 60 * 1000;
 
   const [registeredContacts, setRegisteredContacts] = useState<User[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -51,9 +55,11 @@ export function useContacts(): UseContactsReturn {
     checkPermission();
   }, []);
 
-  // Auto-sync contacts when user logs in and has permission
+  // Auto-sync contacts when user logs in and has permission — but only if we
+  // have no cached contacts and haven't synced recently.
   useEffect(() => {
-    if (user?.uid && hasPermission && storeContacts.length === 0) {
+    const isFresh = lastSyncTime != null && Date.now() - lastSyncTime < SYNC_TTL_MS;
+    if (user?.uid && hasPermission && storeContacts.length === 0 && !isFresh) {
       sync();
     }
   }, [user?.uid, hasPermission]);
@@ -108,6 +114,7 @@ export function useContacts(): UseContactsReturn {
 
       if (result.success) {
         setContacts(result.contacts);
+        setLastSyncTime(Date.now());
 
         // Also update registered contacts
         const userIds = result.contacts

@@ -16,11 +16,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { t } from '../../lib/i18n';
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
@@ -45,6 +46,8 @@ type ActionSheetAction = {
 };
 
 export default function GroupInfoScreen() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const { user } = useAuthStore();
   const { contacts, setContacts } = useChatStore();
@@ -436,7 +439,7 @@ export default function GroupInfoScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
@@ -461,7 +464,7 @@ export default function GroupInfoScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <Pressable onPress={() => setShowAddParticipants(false)} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+            <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
           </Pressable>
           <Text style={styles.headerTitle}>{t('groups.addParticipants')}</Text>
           <Pressable
@@ -527,7 +530,7 @@ export default function GroupInfoScreen() {
                     </View>
                     <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
                       {isSelected && (
-                        <Ionicons name="checkmark" size={16} color={Colors.textInverse} />
+                        <Ionicons name="checkmark" size={16} color={colors.textInverse} />
                       )}
                     </View>
                   </Pressable>
@@ -545,12 +548,12 @@ export default function GroupInfoScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
         </Pressable>
         <Text style={styles.headerTitle}>{t('groups.groupInfo')}</Text>
         {isAdmin && !isEditing && (
           <Pressable onPress={() => setIsEditing(true)} style={styles.headerAction}>
-            <Ionicons name="pencil" size={20} color={Colors.textInverse} />
+            <Ionicons name="pencil" size={20} color={colors.textInverse} />
           </Pressable>
         )}
         {isEditing && (
@@ -560,7 +563,7 @@ export default function GroupInfoScreen() {
             disabled={isSaving}
           >
             {isSaving ? (
-              <ActivityIndicator size="small" color={Colors.textInverse} />
+              <ActivityIndicator size="small" color={colors.textInverse} />
             ) : (
               <Text style={styles.headerActionText}>Save</Text>
             )}
@@ -580,12 +583,12 @@ export default function GroupInfoScreen() {
               <Image source={{ uri: chat.groupAvatarUrl }} style={styles.groupAvatar} />
             ) : (
               <View style={[styles.groupAvatar, styles.groupAvatarPlaceholder]}>
-                <Ionicons name="people" size={48} color={Colors.textSecondary} />
+                <Ionicons name="people" size={48} color={colors.textSecondary} />
               </View>
             )}
             {isAdmin && (
               <View style={styles.cameraIcon}>
-                <Ionicons name="camera" size={16} color={Colors.textInverse} />
+                <Ionicons name="camera" size={16} color={colors.textInverse} />
               </View>
             )}
           </Pressable>
@@ -596,7 +599,7 @@ export default function GroupInfoScreen() {
               value={editedName}
               onChangeText={setEditedName}
               placeholder="Group name"
-              placeholderTextColor={Colors.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               maxLength={50}
             />
           ) : (
@@ -617,7 +620,7 @@ export default function GroupInfoScreen() {
               value={editedDescription}
               onChangeText={setEditedDescription}
               placeholder="Add group description"
-              placeholderTextColor={Colors.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               multiline
               maxLength={250}
             />
@@ -641,7 +644,7 @@ export default function GroupInfoScreen() {
                   setShowAddParticipants(true);
                 }}
               >
-                <Ionicons name="person-add" size={22} color={Colors.primary} />
+                <Ionicons name="person-add" size={22} color={colors.primary} />
               </Pressable>
             )}
           </View>
@@ -657,7 +660,7 @@ export default function GroupInfoScreen() {
         {/* Leave Group */}
         <View style={styles.dangerSection}>
           <Pressable style={styles.leaveButton} onPress={handleLeaveGroup}>
-            <Ionicons name="exit-outline" size={24} color={Colors.error} />
+            <Ionicons name="exit-outline" size={24} color={colors.error} />
             <Text style={styles.leaveButtonText}>{t('groups.leaveGroup')}</Text>
           </Pressable>
         </View>
@@ -666,10 +669,11 @@ export default function GroupInfoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   header: {
     flexDirection: 'row',
@@ -677,7 +681,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   backButton: {
     width: 40,
@@ -689,7 +693,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.lg,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     textAlign: 'center',
   },
   headerAction: {
@@ -701,46 +705,46 @@ const styles = StyleSheet.create({
   headerActionText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   headerActionTextDisabled: {
     opacity: 0.5,
   },
   content: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   errorText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.lg,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: Spacing.md,
   },
   backLink: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.primary,
+    color: colors.primary,
   },
 
   // Profile section
   profileSection: {
     alignItems: 'center',
     paddingVertical: Spacing.xl,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   avatarContainer: {
     position: 'relative',
@@ -751,7 +755,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
   groupAvatarPlaceholder: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -762,43 +766,43 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.background,
+    borderColor: colors.background,
   },
   groupName: {
     fontFamily: Typography.fontFamily.bold,
     fontSize: Typography.size.xl,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginTop: Spacing.md,
   },
   editNameInput: {
     fontFamily: Typography.fontFamily.bold,
     fontSize: Typography.size.xl,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginTop: Spacing.md,
     textAlign: 'center',
     borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
+    borderBottomColor: colors.primary,
     paddingVertical: Spacing.xs,
     minWidth: 200,
   },
   participantCount: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.xs,
   },
 
   // Sections
   section: {
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -809,21 +813,21 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.primary,
+    color: colors.primary,
     marginBottom: Spacing.sm,
   },
   descriptionText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     lineHeight: Typography.size.md * 1.5,
   },
   editDescriptionInput: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: colors.primary,
     borderRadius: Radius.md,
     padding: Spacing.md,
     minHeight: 80,
@@ -842,14 +846,14 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   avatarPlaceholder: {
-    backgroundColor: Colors.primaryFaded,
+    backgroundColor: colors.primaryFaded,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarInitial: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.lg,
-    color: Colors.primary,
+    color: colors.primary,
   },
   participantInfo: {
     flex: 1,
@@ -862,10 +866,10 @@ const styles = StyleSheet.create({
   participantName: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   adminBadge: {
-    backgroundColor: Colors.primaryFaded,
+    backgroundColor: colors.primaryFaded,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: Radius.sm,
@@ -874,12 +878,12 @@ const styles = StyleSheet.create({
   adminBadgeText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.xs,
-    color: Colors.primary,
+    color: colors.primary,
   },
   participantAbout: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
 
@@ -893,33 +897,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.lg,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderRadius: Radius.lg,
     borderWidth: 1,
-    borderColor: Colors.error,
+    borderColor: colors.error,
   },
   leaveButtonText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.error,
+    color: colors.error,
     marginLeft: Spacing.sm,
   },
 
   // Add participants modal
   addParticipantsContent: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   selectedSection: {
     padding: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   selectedCount: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.md,
-    color: Colors.primary,
+    color: colors.primary,
   },
   emptyContainer: {
     flex: 1,
@@ -929,14 +933,14 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   contactAvatar: {
     width: 48,
@@ -950,12 +954,12 @@ const styles = StyleSheet.create({
   contactName: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   contactPhone: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   checkbox: {
@@ -963,12 +967,12 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.divider,
+    borderColor: colors.divider,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
 });

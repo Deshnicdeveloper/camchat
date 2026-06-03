@@ -201,6 +201,7 @@ export default function SettingsScreen() {
         visible={qrModalVisible}
         userId={userId}
         userName={userName}
+        avatarUrl={userAvatar}
         onClose={() => setQrModalVisible(false)}
       />
     </SafeAreaView>

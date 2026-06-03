@@ -3,7 +3,7 @@
  * Bottom sheet with message actions: Reply, React, Star, Copy, Delete
  */
 
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { t } from '../../lib/i18n';
 import type { Message } from '../../types';
 
@@ -41,6 +42,8 @@ export const MessageActionsSheet = memo(function MessageActionsSheet({
   onCopy,
   onDelete,
 }: MessageActionsSheetProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const handleBackdropPress = useCallback(() => {
     onClose();
   }, [onClose]);
@@ -78,19 +81,19 @@ export const MessageActionsSheet = memo(function MessageActionsSheet({
           <ScrollView style={styles.actions} showsVerticalScrollIndicator={false}>
             {/* Reply */}
             <Pressable style={styles.actionRow} onPress={onReply}>
-              <View style={[styles.actionIcon, { backgroundColor: Colors.primary }]}>
-                <Ionicons name="arrow-undo" size={20} color={Colors.textInverse} />
+              <View style={[styles.actionIcon, { backgroundColor: colors.primary }]}>
+                <Ionicons name="arrow-undo" size={20} color={colors.textInverse} />
               </View>
               <Text style={styles.actionText}>{t('messages.reply')}</Text>
             </Pressable>
 
             {/* Star */}
             <Pressable style={styles.actionRow} onPress={onStar}>
-              <View style={[styles.actionIcon, { backgroundColor: Colors.warning }]}>
+              <View style={[styles.actionIcon, { backgroundColor: colors.warning }]}>
                 <Ionicons
                   name={message.isStarred ? 'star' : 'star-outline'}
                   size={20}
-                  color={Colors.textInverse}
+                  color={colors.textInverse}
                 />
               </View>
               <Text style={styles.actionText}>
@@ -101,8 +104,8 @@ export const MessageActionsSheet = memo(function MessageActionsSheet({
             {/* Copy (only for text messages) */}
             {message.type === 'text' && message.text && (
               <Pressable style={styles.actionRow} onPress={onCopy}>
-                <View style={[styles.actionIcon, { backgroundColor: Colors.info }]}>
-                  <Ionicons name="copy" size={20} color={Colors.textInverse} />
+                <View style={[styles.actionIcon, { backgroundColor: colors.info }]}>
+                  <Ionicons name="copy" size={20} color={colors.textInverse} />
                 </View>
                 <Text style={styles.actionText}>{t('messages.copy')}</Text>
               </Pressable>
@@ -110,8 +113,8 @@ export const MessageActionsSheet = memo(function MessageActionsSheet({
 
             {/* Delete */}
             <Pressable style={styles.actionRow} onPress={onDelete}>
-              <View style={[styles.actionIcon, { backgroundColor: Colors.error }]}>
-                <Ionicons name="trash" size={20} color={Colors.textInverse} />
+              <View style={[styles.actionIcon, { backgroundColor: colors.error }]}>
+                <Ionicons name="trash" size={20} color={colors.textInverse} />
               </View>
               <Text style={[styles.actionText, styles.deleteText]}>
                 {t('common.delete')}
@@ -129,14 +132,15 @@ export const MessageActionsSheet = memo(function MessageActionsSheet({
   );
 });
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: Colors.overlay,
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
     paddingBottom: Spacing.xl,
@@ -149,7 +153,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 36,
     height: 4,
-    backgroundColor: Colors.divider,
+    backgroundColor: colors.divider,
     borderRadius: 2,
   },
   reactionsBar: {
@@ -158,13 +162,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   reactionButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -191,23 +195,23 @@ const styles = StyleSheet.create({
   actionText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   deleteText: {
-    color: Colors.error,
+    color: colors.error,
   },
   cancelButton: {
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.md,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radius.md,
     alignItems: 'center',
   },
   cancelText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
 });
 

@@ -140,10 +140,13 @@ export async function findRegisteredUsers(
 
     const usersRef = collection(db, COLLECTIONS.USERS);
 
-    for (const batch of batches) {
-      const q = query(usersRef, where('phone', 'in', batch));
-      const snapshot = await getDocs(q);
+    // Run all batch queries in parallel instead of sequentially. With many
+    // contacts this is the difference between ~30s and ~1-2s.
+    const snapshots = await Promise.all(
+      batches.map((batch) => getDocs(query(usersRef, where('phone', 'in', batch))))
+    );
 
+    for (const snapshot of snapshots) {
       for (const doc of snapshot.docs) {
         // Don't include the current user
         if (doc.id !== currentUserId) {
@@ -250,10 +253,12 @@ export async function getUsersByIds(userIds: string[]): Promise<User[]> {
 
     const usersRef = collection(db, COLLECTIONS.USERS);
 
-    for (const batch of batches) {
-      const q = query(usersRef, where(documentId(), 'in', batch));
-      const snapshot = await getDocs(q);
+    // Run batch queries in parallel for speed.
+    const snapshots = await Promise.all(
+      batches.map((batch) => getDocs(query(usersRef, where(documentId(), 'in', batch))))
+    );
 
+    for (const snapshot of snapshots) {
       for (const doc of snapshot.docs) {
         const userData = doc.data() as Omit<User, 'uid'>;
         users.push({

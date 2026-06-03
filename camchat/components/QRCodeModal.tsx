@@ -1,14 +1,18 @@
+import { useMemo } from 'react';
 import { View, Text, StyleSheet, Modal, Pressable, Share } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import QRCode from 'react-native-qrcode-svg';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius } from '../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../constants';
 import { t } from '../lib/i18n';
+import { useColors } from '../hooks/useColors';
 
 interface QRCodeModalProps {
   visible: boolean;
   userId: string;
   userName: string;
+  avatarUrl?: string | null;
   onClose: () => void;
 }
 
@@ -16,8 +20,13 @@ export default function QRCodeModal({
   visible,
   userId,
   userName,
+  avatarUrl,
   onClose,
 }: QRCodeModalProps) {
+  const insets = useSafeAreaInsets();
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const qrValue = `https://camchat.app/profile/${userId}`;
 
   const handleShare = async () => {
@@ -32,136 +41,161 @@ export default function QRCodeModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={28} color={Colors.textInverse} />
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View style={styles.container}>
+        {/* Header — explicit top inset so it never sits under the status bar */}
+        <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
+          <Pressable onPress={onClose} style={styles.iconButton} hitSlop={10}>
+            <Ionicons name="close" size={26} color={colors.textInverse} />
           </Pressable>
           <Text style={styles.headerTitle}>{t('profile.myQRCode') || 'My QR Code'}</Text>
-          <Pressable onPress={handleShare} style={styles.shareButton}>
-            <Ionicons name="share-social" size={24} color={Colors.textInverse} />
+          <Pressable onPress={handleShare} style={styles.iconButton} hitSlop={10}>
+            <Ionicons name="share-social-outline" size={22} color={colors.textInverse} />
           </Pressable>
         </View>
 
-        {/* QR Code Section */}
+        {/* Centered card */}
         <View style={styles.content}>
-          <Text style={styles.subtitle}>{userName}</Text>
-          <View style={styles.qrContainer}>
+          <View style={styles.card}>
+            <View style={styles.avatar}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} contentFit="cover" />
+              ) : (
+                <Text style={styles.avatarInitial}>
+                  {(userName?.trim()?.[0] || '?').toUpperCase()}
+                </Text>
+              )}
+            </View>
+            <Text style={styles.name} numberOfLines={1}>{userName}</Text>
+            <Text style={styles.handle}>CamChat</Text>
+
             <View style={styles.qrWrapper}>
               <QRCode
                 value={qrValue}
-                size={280}
-                color={Colors.textPrimary}
-                backgroundColor={Colors.background}
-                logo={undefined}
+                size={220}
+                color="#0D0D0D"
+                backgroundColor="#FFFFFF"
               />
             </View>
+
+            <Text style={styles.description}>
+              {t('profile.scanQRDescription') || 'Scan this code to add me on CamChat'}
+            </Text>
           </View>
-          <Text style={styles.description}>
-            {t('profile.scanQRDescription') || 'Scan this QR code to connect with me'}
-          </Text>
         </View>
 
-        {/* Action Button */}
-        <View style={styles.footer}>
+        {/* Footer */}
+        <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
           <Pressable style={styles.button} onPress={handleShare}>
-            <Ionicons name="share-social" size={20} color={Colors.textInverse} />
-            <Text style={styles.buttonText}>
-              {t('common.share') || 'Share'}
-            </Text>
+            <Ionicons name="share-social" size={20} color={colors.textInverse} />
+            <Text style={styles.buttonText}>{t('common.share') || 'Share'}</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.primary,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  shareButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontFamily: Typography.fontFamily.semibold,
-    fontSize: Typography.size.lg,
-    color: Colors.textInverse,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.background,
-    paddingHorizontal: Spacing.lg,
-  },
-  subtitle: {
-    fontFamily: Typography.fontFamily.semibold,
-    fontSize: Typography.size.lg,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xl,
-  },
-  qrContainer: {
-    marginVertical: Spacing.xl,
-  },
-  qrWrapper: {
-    padding: Spacing.lg,
-    backgroundColor: Colors.background,
-    borderRadius: Radius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  description: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.md,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginTop: Spacing.lg,
-  },
-  footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
-    backgroundColor: Colors.background,
-    borderTopWidth: 1,
-    borderTopColor: Colors.divider,
-  },
-  button: {
-    flexDirection: 'row',
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.lg,
-    borderRadius: Radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    fontFamily: Typography.fontFamily.semibold,
-    fontSize: Typography.size.md,
-    color: Colors.textInverse,
-    marginLeft: Spacing.sm,
-  },
-});
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.primary,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.md,
+      paddingBottom: Spacing.md,
+    },
+    iconButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerTitle: {
+      fontFamily: Typography.fontFamily.semibold,
+      fontSize: Typography.size.lg,
+      color: colors.textInverse,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.xl,
+    },
+    card: {
+      width: '100%',
+      backgroundColor: colors.background,
+      borderRadius: Radius.xl,
+      paddingVertical: Spacing.xl,
+      paddingHorizontal: Spacing.lg,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.15,
+      shadowRadius: 16,
+      elevation: 6,
+    },
+    avatar: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: colors.primaryFaded,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+      marginBottom: Spacing.md,
+    },
+    avatarImage: { width: '100%', height: '100%' },
+    avatarInitial: {
+      fontFamily: Typography.fontFamily.bold,
+      fontSize: Typography.size.xxl,
+      color: colors.primary,
+    },
+    name: {
+      fontFamily: Typography.fontFamily.bold,
+      fontSize: Typography.size.xl,
+      color: colors.textPrimary,
+      maxWidth: '90%',
+    },
+    handle: {
+      fontFamily: Typography.fontFamily.regular,
+      fontSize: Typography.size.sm,
+      color: colors.textSecondary,
+      marginTop: 2,
+      marginBottom: Spacing.lg,
+    },
+    qrWrapper: {
+      padding: Spacing.md,
+      backgroundColor: '#FFFFFF',
+      borderRadius: Radius.lg,
+    },
+    description: {
+      fontFamily: Typography.fontFamily.regular,
+      fontSize: Typography.size.sm,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginTop: Spacing.lg,
+    },
+    footer: {
+      paddingHorizontal: Spacing.xl,
+      paddingTop: Spacing.md,
+    },
+    button: {
+      flexDirection: 'row',
+      backgroundColor: colors.primaryDark,
+      paddingVertical: Spacing.lg,
+      borderRadius: Radius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    buttonText: {
+      fontFamily: Typography.fontFamily.semibold,
+      fontSize: Typography.size.md,
+      color: colors.textInverse,
+      marginLeft: Spacing.sm,
+    },
+  });

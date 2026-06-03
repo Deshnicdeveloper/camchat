@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 /**
  * User Profile Screen
  * View another user's profile
@@ -7,9 +8,12 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 
 export default function ProfileScreen() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { userId } = useLocalSearchParams<{ userId: string }>();
 
   return (
@@ -17,7 +21,7 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
         </Pressable>
         <Text style={styles.headerTitle}>Profile</Text>
         <View style={styles.backButton} />
@@ -27,7 +31,7 @@ export default function ProfileScreen() {
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Ionicons name="person" size={60} color={Colors.textSecondary} />
+            <Ionicons name="person" size={60} color={colors.textSecondary} />
           </View>
           <Text style={styles.userName}>User Name</Text>
           <Text style={styles.phoneNumber}>+237 6XX XXX XXX</Text>
@@ -43,21 +47,21 @@ export default function ProfileScreen() {
         <View style={styles.actionsRow}>
           <Pressable style={styles.actionButton}>
             <View style={styles.actionIcon}>
-              <Ionicons name="chatbubble" size={24} color={Colors.primary} />
+              <Ionicons name="chatbubble" size={24} color={colors.primary} />
             </View>
             <Text style={styles.actionLabel}>Message</Text>
           </Pressable>
 
           <Pressable style={styles.actionButton}>
             <View style={styles.actionIcon}>
-              <Ionicons name="call" size={24} color={Colors.primary} />
+              <Ionicons name="call" size={24} color={colors.primary} />
             </View>
             <Text style={styles.actionLabel}>Audio</Text>
           </Pressable>
 
           <Pressable style={styles.actionButton}>
             <View style={styles.actionIcon}>
-              <Ionicons name="videocam" size={24} color={Colors.primary} />
+              <Ionicons name="videocam" size={24} color={colors.primary} />
             </View>
             <Text style={styles.actionLabel}>Video</Text>
           </Pressable>
@@ -69,7 +73,7 @@ export default function ProfileScreen() {
             <Text style={styles.mediaSectionTitle}>Media, Links, and Docs</Text>
             <Text style={styles.mediaSectionCount}>0</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
         </Pressable>
 
         {/* User ID (Debug) */}
@@ -79,10 +83,11 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   header: {
     flexDirection: 'row',
@@ -90,7 +95,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   backButton: {
     width: 40,
@@ -101,24 +106,24 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.lg,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   content: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   profileCard: {
     alignItems: 'center',
     paddingVertical: Spacing.xxl,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.md,
@@ -126,38 +131,38 @@ const styles = StyleSheet.create({
   userName: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.xl,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: Spacing.xs,
   },
   phoneNumber: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   section: {
     padding: Spacing.lg,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   sectionLabel: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: Spacing.xs,
   },
   aboutText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: Spacing.xl,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   actionButton: {
     alignItems: 'center',
@@ -166,7 +171,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.primaryFaded,
+    backgroundColor: colors.primaryFaded,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.sm,
@@ -174,15 +179,15 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.sm,
-    color: Colors.primary,
+    color: colors.primary,
   },
   mediaSection: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.lg,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   mediaSectionContent: {
     flex: 1,
@@ -190,18 +195,18 @@ const styles = StyleSheet.create({
   mediaSectionTitle: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   mediaSectionCount: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   debugText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.xs,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     paddingVertical: Spacing.xl,
   },

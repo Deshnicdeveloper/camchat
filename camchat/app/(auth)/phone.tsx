@@ -19,10 +19,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { FirebaseRecaptchaVerifierModal, FirebaseRecaptchaBanner } from 'expo-firebase-recaptcha';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { t } from '../../lib/i18n';
 import { useAuthStore } from '../../store/authStore';
 import { sendOTP } from '../../lib/auth';
@@ -61,6 +62,8 @@ const validateCameroonPhone = (phone: string): boolean => {
 };
 
 export default function PhoneScreen() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode] = useState('+237'); // Cameroon default
   const [isSending, setIsSending] = useState(false);
@@ -150,7 +153,7 @@ export default function PhoneScreen() {
             {/* Header */}
             <View style={styles.header}>
               <Pressable onPress={() => router.back()} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+                <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
               </Pressable>
             </View>
 
@@ -166,14 +169,14 @@ export default function PhoneScreen() {
                   <Pressable style={styles.countryCode}>
                     <Text style={styles.flag}>🇨🇲</Text>
                     <Text style={styles.codeText}>{countryCode}</Text>
-                    <Ionicons name="chevron-down" size={16} color={Colors.textSecondary} />
+                    <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
                   </Pressable>
 
                   {/* Phone Number Input */}
                   <TextInput
                     style={styles.phoneInput}
                     placeholder="6XX XXX XXX"
-                    placeholderTextColor={Colors.textSecondary}
+                    placeholderTextColor={colors.textSecondary}
                     keyboardType="phone-pad"
                     value={phoneNumber}
                     onChangeText={handlePhoneChange}
@@ -199,7 +202,7 @@ export default function PhoneScreen() {
                 disabled={!isValidPhone || isSending}
               >
                 {isSending ? (
-                  <ActivityIndicator color={Colors.primary} />
+                  <ActivityIndicator color={colors.primary} />
                 ) : (
                   <Text style={[styles.buttonText, !isValidPhone && styles.buttonTextDisabled]}>
                     {t('auth.continue')}
@@ -214,10 +217,11 @@ export default function PhoneScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   keyboardAvoid: {
     flex: 1,
@@ -243,20 +247,20 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: Typography.fontFamily.bold,
     fontSize: Typography.size.xl,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
   subtitle: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.base,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     textAlign: 'center',
     opacity: 0.9,
     marginBottom: Spacing.xxl,
   },
   card: {
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
   },
@@ -269,7 +273,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingRight: Spacing.md,
     borderRightWidth: 1,
-    borderRightColor: Colors.divider,
+    borderRightColor: colors.divider,
   },
   flag: {
     fontSize: 24,
@@ -278,14 +282,14 @@ const styles = StyleSheet.create({
   codeText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginRight: Spacing.xs,
   },
   phoneInput: {
     flex: 1,
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.lg,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     paddingLeft: Spacing.md,
     paddingVertical: Spacing.sm,
   },
@@ -293,12 +297,12 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   recaptchaText: {
-    color: Colors.textInverse,
+    color: colors.textInverse,
     opacity: 0.7,
     fontSize: Typography.size.xs,
   },
   recaptchaLink: {
-    color: Colors.textInverse,
+    color: colors.textInverse,
     opacity: 0.9,
   },
   footer: {
@@ -306,7 +310,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxl,
   },
   button: {
-    backgroundColor: Colors.textInverse,
+    backgroundColor: colors.textInverse,
     paddingVertical: Spacing.lg,
     borderRadius: Radius.full,
     alignItems: 'center',
@@ -317,7 +321,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.primary,
+    color: colors.primary,
   },
   buttonTextDisabled: {
     opacity: 0.7,

@@ -47,6 +47,19 @@ export function VoiceCallView({ remoteUser, isConnected }: VoiceCallViewProps) {
 
   return (
     <View style={styles.container}>
+      {/* Full-screen blurred avatar backdrop (WhatsApp style) */}
+      {remoteUser?.avatarUrl ? (
+        <>
+          <Image
+            source={{ uri: remoteUser.avatarUrl }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            blurRadius={25}
+          />
+          <View style={styles.backdropTint} />
+        </>
+      ) : null}
+
       {/* Background rings animation */}
       {isConnected && (
         <>
@@ -91,6 +104,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.primaryDark,
+  },
+  backdropTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10, 32, 112, 0.55)',
   },
   pulseRing: {
     position: 'absolute',

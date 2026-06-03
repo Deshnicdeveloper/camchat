@@ -3,11 +3,12 @@
  * Avatar with a colored ring indicating status (viewed/unviewed)
  */
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing } from '../../constants';
+import { Spacing, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 
 interface StatusRingProps {
   avatarUrl?: string;
@@ -34,8 +35,10 @@ function StatusRing({
   showAddButton = false,
   onPress,
 }: StatusRingProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const dimensions = SIZES[size];
-  const ringColor = hasUnviewed ? Colors.primary : Colors.textSecondary;
+  const ringColor = hasUnviewed ? colors.primary : colors.textSecondary;
   const ringWidth = 2.5;
 
   // Calculate segment angles for multiple statuses
@@ -110,7 +113,7 @@ function StatusRing({
               <Ionicons
                 name="person"
                 size={dimensions.avatar * 0.5}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
             </View>
           )}
@@ -128,7 +131,7 @@ function StatusRing({
               },
             ]}
           >
-            <Ionicons name="add" size={dimensions.addIcon} color={Colors.textInverse} />
+            <Ionicons name="add" size={dimensions.addIcon} color={colors.textInverse} />
           </View>
         )}
       </View>
@@ -136,7 +139,8 @@ function StatusRing({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -148,13 +152,13 @@ const styles = StyleSheet.create({
   avatarContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   avatar: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
   avatarPlaceholder: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -162,11 +166,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.background,
+    borderColor: colors.background,
   },
 });
 

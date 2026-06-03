@@ -1,10 +1,12 @@
+import { useMemo } from 'react';
 /**
  * DateSeparator Component
  * Shows date divider between messages from different days
  */
 
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { formatDateSeparator } from '../../utils/formatTime';
 
 interface DateSeparatorProps {
@@ -12,6 +14,8 @@ interface DateSeparatorProps {
 }
 
 export default function DateSeparator({ date }: DateSeparatorProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.container}>
       <View style={styles.chip}>
@@ -21,13 +25,14 @@ export default function DateSeparator({ date }: DateSeparatorProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     alignItems: 'center',
     paddingVertical: Spacing.md,
   },
   chip: {
-    backgroundColor: Colors.primaryFaded,
+    backgroundColor: colors.primaryFaded,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Radius.md,
@@ -35,7 +40,7 @@ const styles = StyleSheet.create({
   text: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.xs,
-    color: Colors.primary,
+    color: colors.primary,
     textTransform: 'uppercase',
   },
 });

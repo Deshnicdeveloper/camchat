@@ -3,7 +3,7 @@
  * Recording UI with waveform, timer, and swipe gestures
  */
 
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import {
   PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { t } from '../../lib/i18n';
 
 interface VoiceRecordingBarProps {
@@ -38,6 +39,8 @@ export const VoiceRecordingBar = memo(function VoiceRecordingBar({
   onLock,
   onSlideCancel,
 }: VoiceRecordingBarProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const slideX = useRef(new Animated.Value(0)).current;
   const slideY = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -143,12 +146,12 @@ export const VoiceRecordingBar = memo(function VoiceRecordingBar({
         <View style={styles.lockedActions}>
           {/* Cancel button */}
           <Pressable style={styles.cancelButton} onPress={onCancel}>
-            <Ionicons name="trash" size={22} color={Colors.error} />
+            <Ionicons name="trash" size={22} color={colors.error} />
           </Pressable>
 
           {/* Send button */}
           <Pressable style={styles.sendButton} onPress={onStop}>
-            <Ionicons name="send" size={22} color={Colors.textInverse} />
+            <Ionicons name="send" size={22} color={colors.textInverse} />
           </Pressable>
         </View>
       </View>
@@ -181,7 +184,7 @@ export const VoiceRecordingBar = memo(function VoiceRecordingBar({
           },
         ]}
       >
-        <Ionicons name="chevron-back" size={18} color={Colors.textSecondary} />
+        <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
         <Text style={styles.cancelHintText}>{t('voiceNotes.slideToCancel')}</Text>
       </Animated.View>
 
@@ -209,18 +212,19 @@ export const VoiceRecordingBar = memo(function VoiceRecordingBar({
           },
         ]}
       >
-        <Ionicons name="lock-closed" size={18} color={Colors.textSecondary} />
+        <Ionicons name="lock-closed" size={18} color={colors.textSecondary} />
       </Animated.View>
     </Animated.View>
   );
 });
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radius.xl,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -231,7 +235,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radius.xl,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -254,7 +258,7 @@ const styles = StyleSheet.create({
   cancelHintText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginLeft: Spacing.xs,
   },
   recordingInfo: {
@@ -267,13 +271,13 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: Colors.error,
+    backgroundColor: colors.error,
     marginRight: Spacing.sm,
   },
   durationText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginRight: Spacing.md,
     minWidth: 40,
   },
@@ -286,7 +290,7 @@ const styles = StyleSheet.create({
   },
   waveformBar: {
     width: 3,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 1.5,
     marginHorizontal: 1,
   },
@@ -304,7 +308,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },

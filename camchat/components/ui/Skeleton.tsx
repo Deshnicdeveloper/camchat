@@ -3,9 +3,10 @@
  * Animated placeholder while content loads
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { View, StyleSheet, Animated, ViewStyle, Easing } from 'react-native';
-import { Colors, Radius } from '../../constants';
+import { Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 
 type SkeletonVariant = 'text' | 'circular' | 'rectangular';
 
@@ -24,6 +25,8 @@ export default function Skeleton({
   borderRadius,
   style,
 }: SkeletonProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -111,6 +114,8 @@ export function SkeletonText({
   lines?: number;
   lastLineWidth?: number | string;
 }) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.textContainer}>
       {Array.from({ length: lines }).map((_, index) => (
@@ -127,6 +132,8 @@ export function SkeletonText({
 }
 
 export function SkeletonChatRow() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.chatRow}>
       <SkeletonAvatar size={48} />
@@ -138,9 +145,10 @@ export function SkeletonChatRow() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   skeleton: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: colors.surfaceAlt,
   },
   textContainer: {
     width: '100%',

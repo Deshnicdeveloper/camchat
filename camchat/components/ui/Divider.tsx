@@ -4,7 +4,8 @@
  */
 
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, Spacing } from '../../constants';
+import { Spacing } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 
 interface DividerProps {
   orientation?: 'horizontal' | 'vertical';
@@ -17,10 +18,12 @@ interface DividerProps {
 export default function Divider({
   orientation = 'horizontal',
   spacing = 'none',
-  color = Colors.divider,
+  color,
   thickness = 1,
   style,
 }: DividerProps) {
+  const { colors } = useColors();
+  const dividerColor = color ?? colors.divider;
   const isHorizontal = orientation === 'horizontal';
 
   const getSpacing = (): number => {
@@ -54,7 +57,7 @@ export default function Divider({
     <View
       style={[
         styles.divider,
-        { backgroundColor: color },
+        { backgroundColor: dividerColor },
         dividerStyle,
         style,
       ]}

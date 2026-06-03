@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 /**
  * Reusable Input Component
  * Text input with label and error states
@@ -5,7 +6,8 @@
 
 import { View, Text, TextInput, StyleSheet, TextInputProps, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -26,6 +28,8 @@ export default function Input({
   style,
   ...textInputProps
 }: InputProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const hasError = Boolean(error);
 
   return (
@@ -37,7 +41,7 @@ export default function Input({
           <Ionicons
             name={leftIcon}
             size={20}
-            color={Colors.textSecondary}
+            color={colors.textSecondary}
             style={styles.leftIcon}
           />
         )}
@@ -49,7 +53,7 @@ export default function Input({
             rightIcon && styles.inputWithRightIcon,
             style,
           ]}
-          placeholderTextColor={Colors.textSecondary}
+          placeholderTextColor={colors.textSecondary}
           {...textInputProps}
         />
 
@@ -57,7 +61,7 @@ export default function Input({
           <Ionicons
             name={rightIcon}
             size={20}
-            color={Colors.textSecondary}
+            color={colors.textSecondary}
             style={styles.rightIcon}
             onPress={onRightIconPress}
           />
@@ -69,32 +73,33 @@ export default function Input({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     width: '100%',
   },
   label: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.sm,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: Spacing.xs,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radius.md,
     borderWidth: 1,
-    borderColor: Colors.divider,
+    borderColor: colors.divider,
   },
   inputContainerError: {
-    borderColor: Colors.error,
+    borderColor: colors.error,
   },
   input: {
     flex: 1,
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
   },
@@ -113,7 +118,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.error,
+    color: colors.error,
     marginTop: Spacing.xs,
   },
 });

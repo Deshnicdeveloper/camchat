@@ -3,9 +3,10 @@
  * Displays a contact's status preview in the status list
  */
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Colors, Typography, Spacing } from '../../constants';
+import { Typography, Spacing, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { formatStatusTime } from '../../utils/formatTime';
 import StatusRing from './StatusRing';
 import type { StatusGroup } from '../../types';
@@ -16,6 +17,8 @@ interface StatusRowProps {
 }
 
 function StatusRow({ statusGroup, onPress }: StatusRowProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { user, statuses, hasUnviewed } = statusGroup;
   const latestStatus = statuses[0];
   const statusCount = statuses.length;
@@ -42,13 +45,14 @@ function StatusRow({ statusGroup, onPress }: StatusRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   info: {
     flex: 1,
@@ -57,13 +61,13 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.base,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   time: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 });
 

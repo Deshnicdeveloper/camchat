@@ -5,11 +5,10 @@
 
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography } from '../../constants';
+import { Typography } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { t } from '../../lib/i18n';
-import { Platform, StyleSheet } from 'react-native';
-
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+import { Platform } from 'react-native';
 
 interface TabBarIconProps {
   focused: boolean;
@@ -18,16 +17,31 @@ interface TabBarIconProps {
 }
 
 export default function TabLayout() {
+  const { colors } = useColors();
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textSecondary,
-        tabBarStyle: styles.tabBar,
-        tabBarLabelStyle: styles.tabBarLabel,
-        headerStyle: styles.header,
-        headerTintColor: Colors.textInverse,
-        headerTitleStyle: styles.headerTitle,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: colors.background,
+          borderTopColor: colors.divider,
+          borderTopWidth: 1,
+          height: Platform.OS === 'ios' ? 85 : 65,
+          paddingBottom: Platform.OS === 'ios' ? 25 : 10,
+          paddingTop: 10,
+        },
+        tabBarLabelStyle: {
+          fontFamily: Typography.fontFamily.medium,
+          fontSize: Typography.size.xs,
+        },
+        headerStyle: { backgroundColor: colors.primary },
+        headerTintColor: colors.textInverse,
+        headerTitleStyle: {
+          fontFamily: Typography.fontFamily.semibold,
+          fontSize: Typography.size.lg,
+          color: colors.textInverse,
+        },
         headerShadowVisible: false,
         headerShown: false,
       }}
@@ -87,26 +101,3 @@ export default function TabLayout() {
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: Colors.background,
-    borderTopColor: Colors.divider,
-    borderTopWidth: 1,
-    height: Platform.OS === 'ios' ? 85 : 65,
-    paddingBottom: Platform.OS === 'ios' ? 25 : 10,
-    paddingTop: 10,
-  },
-  tabBarLabel: {
-    fontFamily: Typography.fontFamily.medium,
-    fontSize: Typography.size.xs,
-  },
-  header: {
-    backgroundColor: Colors.primary,
-  },
-  headerTitle: {
-    fontFamily: Typography.fontFamily.semibold,
-    fontSize: Typography.size.lg,
-    color: Colors.textInverse,
-  },
-});

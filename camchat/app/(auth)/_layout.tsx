@@ -4,14 +4,16 @@
  */
 
 import { Stack } from 'expo-router';
-import { Colors } from '../../constants';
+import { ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 
 export default function AuthLayout() {
+  const { colors } = useColors();
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: Colors.primary },
+        contentStyle: { backgroundColor: colors.primary },
       }}
     >
       <Stack.Screen name="welcome" />

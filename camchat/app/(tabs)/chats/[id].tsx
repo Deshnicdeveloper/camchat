@@ -25,10 +25,12 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Location from 'expo-location';
 import * as VideoThumbnails from 'expo-video-thumbnails';
-import { Colors, Typography, Spacing, Radius } from '../../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../../constants';
+import { useColors } from '../../../hooks/useColors';
 import { t } from '../../../lib/i18n';
 import { formatLastSeen } from '../../../utils/formatters';
 import { MessageBubble, MessageInput, DateSeparator } from '../../../components/chat';
+import { ChatBackground } from '../../../components/chat/ChatBackground';
 import PendingMessageBubble from '../../../components/chat/PendingMessageBubble';
 import { TypingIndicator } from '../../../components/chat/TypingIndicator';
 import { MessageActionsSheet } from '../../../components/chat/MessageActionsSheet';
@@ -63,6 +65,8 @@ type ListItem =
   | { type: 'pending'; data: import('../../../hooks/usePendingMessages').PendingMessage };
 
 export default function ChatDetailScreen() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { id: chatId } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
   const { getParticipant } = useChat();
@@ -1126,7 +1130,7 @@ export default function ChatDetailScreen() {
   if (isLoadingChat) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
@@ -1136,7 +1140,7 @@ export default function ChatDetailScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
         </Pressable>
 
         <Pressable
@@ -1159,7 +1163,7 @@ export default function ChatDetailScreen() {
                 />
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <Ionicons name="people" size={20} color={Colors.textSecondary} />
+                  <Ionicons name="people" size={20} color={colors.textSecondary} />
                 </View>
               )
             ) : participant?.avatarUrl ? (
@@ -1170,7 +1174,7 @@ export default function ChatDetailScreen() {
               />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Ionicons name="person" size={20} color={Colors.textSecondary} />
+                <Ionicons name="person" size={20} color={colors.textSecondary} />
               </View>
             )}
             {chat?.type === 'direct' && participant?.isOnline && (
@@ -1198,10 +1202,10 @@ export default function ChatDetailScreen() {
           {chat?.type === 'direct' && (
             <>
               <Pressable onPress={handleVideoCall} style={styles.headerButton}>
-                <Ionicons name="videocam" size={22} color={Colors.textInverse} />
+                <Ionicons name="videocam" size={22} color={colors.textInverse} />
               </Pressable>
               <Pressable onPress={handleVoiceCall} style={styles.headerButton}>
-                <Ionicons name="call" size={22} color={Colors.textInverse} />
+                <Ionicons name="call" size={22} color={colors.textInverse} />
               </Pressable>
             </>
           )}
@@ -1216,7 +1220,7 @@ export default function ChatDetailScreen() {
             <Ionicons
               name={chat?.type === 'group' ? 'information-circle-outline' : 'ellipsis-vertical'}
               size={22}
-              color={Colors.textInverse}
+              color={colors.textInverse}
             />
           </Pressable>
         </View>
@@ -1225,7 +1229,7 @@ export default function ChatDetailScreen() {
       {/* Uploading indicator */}
       {isUploading && (
         <View style={styles.uploadingBar}>
-          <ActivityIndicator size="small" color={Colors.textInverse} />
+          <ActivityIndicator size="small" color={colors.textInverse} />
           <Text style={styles.uploadingText}>{t('attachments.uploading')}</Text>
         </View>
       )}
@@ -1237,13 +1241,15 @@ export default function ChatDetailScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <View style={styles.messagesContainer}>
+          {/* Subtle tiled pattern behind the messages */}
+          <ChatBackground />
           {isLoadingMessages ? (
             <View style={styles.loadingMessages}>
-              <ActivityIndicator size="small" color={Colors.primary} />
+              <ActivityIndicator size="small" color={colors.primary} />
             </View>
           ) : messages.length === 0 ? (
             <View style={styles.emptyMessages}>
-              <Ionicons name="chatbubble-outline" size={48} color={Colors.textSecondary} />
+              <Ionicons name="chatbubble-outline" size={48} color={colors.textSecondary} />
               <Text style={styles.emptyText}>{t('messages.noMessages')}</Text>
               <Text style={styles.emptySubtext}>{t('messages.startConversation')}</Text>
             </View>
@@ -1330,23 +1336,24 @@ export default function ChatDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   backButton: {
     padding: Spacing.xs,
@@ -1366,7 +1373,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   avatarPlaceholder: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1377,9 +1384,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: Colors.success,
+    backgroundColor: colors.success,
     borderWidth: 2,
-    borderColor: Colors.primary,
+    borderColor: colors.primary,
   },
   headerTextContainer: {
     flex: 1,
@@ -1388,16 +1395,16 @@ const styles = StyleSheet.create({
   headerName: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   headerStatus: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.xs,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     opacity: 0.8,
   },
   typingStatus: {
-    color: Colors.accent,
+    color: colors.accent,
   },
   headerActions: {
     flexDirection: 'row',
@@ -1410,18 +1417,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: colors.primaryLight,
     paddingVertical: Spacing.xs,
   },
   uploadingText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.sm,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     marginLeft: Spacing.sm,
   },
   content: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   messagesContainer: {
     flex: 1,
@@ -1444,13 +1451,13 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginTop: Spacing.lg,
   },
   emptySubtext: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.sm,
   },

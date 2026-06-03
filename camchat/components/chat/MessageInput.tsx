@@ -3,7 +3,7 @@
  * Chat input bar with text input, attachments, and voice recording
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   TextInput,
@@ -12,7 +12,8 @@ import {
   Text,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { t } from '../../lib/i18n';
 import { VoiceRecordingBar } from './VoiceRecordingBar';
 import { useVoiceRecorder } from '../../hooks/useVoiceRecorder';
@@ -41,6 +42,8 @@ export default function MessageInput({
   onCancelReply,
   disabled = false,
 }: MessageInputProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [message, setMessage] = useState('');
   const [inputHeight, setInputHeight] = useState(40);
   const inputRef = useRef<TextInput>(null);
@@ -130,10 +133,10 @@ export default function MessageInput({
           <View style={styles.replyContent}>
             <View style={styles.replyBar} />
             <View style={styles.replyTextContainer}>
-              <Ionicons name="arrow-undo" size={14} color={Colors.primary} />
+              <Ionicons name="arrow-undo" size={14} color={colors.primary} />
               <View style={styles.replyInfo}>
                 <View style={styles.replyNameRow}>
-                  <Ionicons name="return-down-forward" size={12} color={Colors.primary} />
+                  <Ionicons name="return-down-forward" size={12} color={colors.primary} />
                   <Text style={styles.replyName}>{replyingTo.name}</Text>
                 </View>
                 <Text style={styles.replyText} numberOfLines={1}>
@@ -143,7 +146,7 @@ export default function MessageInput({
             </View>
           </View>
           <Pressable onPress={onCancelReply} style={styles.cancelReply}>
-            <Ionicons name="close" size={20} color={Colors.textSecondary} />
+            <Ionicons name="close" size={20} color={colors.textSecondary} />
           </Pressable>
         </View>
       )}
@@ -154,7 +157,7 @@ export default function MessageInput({
         <View style={styles.inputContainer}>
           {/* Emoji Button */}
           <Pressable style={styles.iconButton}>
-            <Ionicons name="happy-outline" size={24} color={Colors.textSecondary} />
+            <Ionicons name="happy-outline" size={24} color={colors.textSecondary} />
           </Pressable>
 
           {/* Text Input */}
@@ -162,7 +165,7 @@ export default function MessageInput({
             ref={inputRef}
             style={[styles.textInput, { height: inputHeight }]}
             placeholder={t('chats.typeMessage')}
-            placeholderTextColor={Colors.textSecondary}
+            placeholderTextColor={colors.textSecondary}
             value={message}
             onChangeText={handleTextChange}
             multiline
@@ -173,13 +176,13 @@ export default function MessageInput({
 
           {/* Attachment Button */}
           <Pressable style={styles.iconButton} onPress={onAttachPress}>
-            <Ionicons name="attach" size={24} color={Colors.textSecondary} />
+            <Ionicons name="attach" size={24} color={colors.textSecondary} />
           </Pressable>
 
           {/* Camera Button (only when no text) */}
           {!hasText && onCameraPress && (
             <Pressable style={styles.iconButton} onPress={onCameraPress}>
-              <Ionicons name="camera-outline" size={24} color={Colors.textSecondary} />
+              <Ionicons name="camera-outline" size={24} color={colors.textSecondary} />
             </Pressable>
           )}
         </View>
@@ -195,7 +198,7 @@ export default function MessageInput({
           <Ionicons
             name={hasText ? 'send' : 'mic'}
             size={22}
-            color={Colors.textInverse}
+            color={colors.textInverse}
           />
         </Pressable>
       </View>
@@ -203,11 +206,12 @@ export default function MessageInput({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderTopWidth: 1,
-    borderTopColor: Colors.divider,
+    borderTopColor: colors.divider,
   },
 
   // Reply preview
@@ -216,9 +220,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   replyContent: {
     flex: 1,
@@ -228,7 +232,7 @@ const styles = StyleSheet.create({
   replyBar: {
     width: 3,
     height: '100%',
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 2,
     marginRight: Spacing.sm,
   },
@@ -248,13 +252,13 @@ const styles = StyleSheet.create({
   replyName: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.sm,
-    color: Colors.primary,
+    color: colors.primary,
     marginLeft: Spacing.xs,
   },
   replyText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   cancelReply: {
     padding: Spacing.xs,
@@ -271,7 +275,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radius.xl,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xs,
@@ -287,7 +291,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.base,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xs,
     maxHeight: 120,
@@ -296,7 +300,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },

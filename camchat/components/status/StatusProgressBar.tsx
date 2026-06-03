@@ -3,9 +3,10 @@
  * Multi-segment progress bar for story viewer
  */
 
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useMemo } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { Colors, Spacing } from '../../constants';
+import { Spacing, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 
 interface StatusProgressBarProps {
   count: number;
@@ -22,6 +23,8 @@ function StatusProgressBar({
   isPaused,
   onComplete,
 }: StatusProgressBarProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
@@ -101,7 +104,8 @@ function StatusProgressBar({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.sm,
@@ -123,7 +127,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     height: '100%',
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderRadius: 1,
   },
 });

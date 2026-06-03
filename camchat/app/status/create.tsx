@@ -3,7 +3,7 @@
  * Create text or media statuses
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { t } from '../../lib/i18n';
 import { useStatus } from '../../hooks/useStatus';
 
@@ -42,6 +43,8 @@ const BACKGROUND_COLORS = [
 ];
 
 export default function StatusCreateScreen() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const { type } = useLocalSearchParams<{ type: 'text' | 'media' }>();
   const { createTextStatus, createImageStatus, createVideoStatus } = useStatus();
@@ -58,7 +61,7 @@ export default function StatusCreateScreen() {
   const getTextColor = (bgColor: string): string => {
     // Simple brightness check (could be improved with proper luminance calculation)
     const lightColors = ['#FCD116', '#F59E0B'];
-    return lightColors.includes(bgColor) ? Colors.textPrimary : Colors.textInverse;
+    return lightColors.includes(bgColor) ? colors.textPrimary : colors.textInverse;
   };
 
   // Handle media selection
@@ -197,7 +200,7 @@ export default function StatusCreateScreen() {
             <TextInput
               style={styles.captionInput}
               placeholder={t('status.addCaption')}
-              placeholderTextColor={Colors.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               value={caption}
               onChangeText={setCaption}
               maxLength={200}
@@ -211,14 +214,14 @@ export default function StatusCreateScreen() {
               style={styles.mediaButton}
               onPress={() => handleSelectMedia('camera')}
             >
-              <Ionicons name="camera" size={40} color={Colors.primary} />
+              <Ionicons name="camera" size={40} color={colors.primary} />
               <Text style={styles.mediaButtonText}>{t('common.camera')}</Text>
             </Pressable>
             <Pressable
               style={styles.mediaButton}
               onPress={() => handleSelectMedia('gallery')}
             >
-              <Ionicons name="images" size={40} color={Colors.primary} />
+              <Ionicons name="images" size={40} color={colors.primary} />
               <Text style={styles.mediaButtonText}>{t('common.gallery')}</Text>
             </Pressable>
           </View>
@@ -261,7 +264,7 @@ export default function StatusCreateScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.headerButton}>
-            <Ionicons name="close" size={28} color={Colors.textPrimary} />
+            <Ionicons name="close" size={28} color={colors.textPrimary} />
           </Pressable>
 
           {/* Mode Tabs */}
@@ -273,7 +276,7 @@ export default function StatusCreateScreen() {
               <Ionicons
                 name="text"
                 size={20}
-                color={mode === 'text' ? Colors.primary : Colors.textSecondary}
+                color={mode === 'text' ? colors.primary : colors.textSecondary}
               />
               <Text
                 style={[
@@ -291,7 +294,7 @@ export default function StatusCreateScreen() {
               <Ionicons
                 name="image"
                 size={20}
-                color={mode === 'media' ? Colors.primary : Colors.textSecondary}
+                color={mode === 'media' ? colors.primary : colors.textSecondary}
               />
               <Text
                 style={[
@@ -313,9 +316,9 @@ export default function StatusCreateScreen() {
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <ActivityIndicator size="small" color={Colors.textInverse} />
+              <ActivityIndicator size="small" color={colors.textInverse} />
             ) : (
-              <Ionicons name="send" size={20} color={Colors.textInverse} />
+              <Ionicons name="send" size={20} color={colors.textInverse} />
             )}
           </Pressable>
         </View>
@@ -342,7 +345,7 @@ export default function StatusCreateScreen() {
                 setCaption('');
               }}
             >
-              <Ionicons name="refresh" size={20} color={Colors.primary} />
+              <Ionicons name="refresh" size={20} color={colors.primary} />
               <Text style={styles.changeMediaText}>{t('status.changeMedia')}</Text>
             </Pressable>
           </View>
@@ -352,10 +355,11 @@ export default function StatusCreateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -367,7 +371,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   headerButton: {
     padding: Spacing.xs,
@@ -385,21 +389,21 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   tabActive: {
-    backgroundColor: Colors.primaryFaded,
+    backgroundColor: colors.primaryFaded,
   },
   tabText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   tabTextActive: {
-    color: Colors.primary,
+    color: colors.primary,
   },
   postButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -428,9 +432,9 @@ const styles = StyleSheet.create({
   // Color Picker
   colorPickerContainer: {
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: Colors.divider,
+    borderTopColor: colors.divider,
   },
   colorPicker: {
     paddingHorizontal: Spacing.md,
@@ -446,7 +450,7 @@ const styles = StyleSheet.create({
   },
   colorOptionSelected: {
     borderWidth: 3,
-    borderColor: Colors.background,
+    borderColor: colors.background,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -457,7 +461,7 @@ const styles = StyleSheet.create({
   // Media Preview
   mediaPreview: {
     flex: 1,
-    backgroundColor: Colors.textPrimary,
+    backgroundColor: colors.textPrimary,
   },
   mediaImage: {
     flex: 1,
@@ -474,14 +478,14 @@ const styles = StyleSheet.create({
   captionInput: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.base,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     padding: Spacing.sm,
   },
   mediaPlaceholder: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
   mediaButtons: {
     flexDirection: 'row',
@@ -490,23 +494,23 @@ const styles = StyleSheet.create({
   mediaButton: {
     alignItems: 'center',
     padding: Spacing.lg,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderRadius: Radius.lg,
     minWidth: 120,
   },
   mediaButtonText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.base,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginTop: Spacing.sm,
   },
 
   // Change Media
   changeMediaContainer: {
     padding: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: Colors.divider,
+    borderTopColor: colors.divider,
   },
   changeMediaButton: {
     flexDirection: 'row',
@@ -518,6 +522,6 @@ const styles = StyleSheet.create({
   changeMediaText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.base,
-    color: Colors.primary,
+    color: colors.primary,
   },
 });
