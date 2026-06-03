@@ -1,10 +1,10 @@
 /**
  * Settings UI Kit
  * Reusable building blocks for settings sub-screens so every screen shares the
- * same header, grouped cards, rows and toggles.
+ * same header, grouped cards, rows and toggles. Theme-aware via useColors().
  */
 
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 
 interface ScaffoldProps {
   title: string;
@@ -26,11 +27,13 @@ interface ScaffoldProps {
 
 /** Full screen scaffold with a branded header + scrollable body. */
 export function SettingsScaffold({ title, subtitle, children }: ScaffoldProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={10}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
         </Pressable>
         <View style={styles.headerTextWrap}>
           <Text style={styles.headerTitle}>{title}</Text>
@@ -56,6 +59,8 @@ interface GroupProps {
 
 /** A titled group of rows rendered as a single card. */
 export function SettingsGroup({ title, footer, children }: GroupProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.group}>
       {title ? <Text style={styles.groupTitle}>{title}</Text> : null}
@@ -87,6 +92,8 @@ export function SettingsRow({
   color,
   rightElement,
 }: RowProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Pressable
       style={styles.row}
@@ -95,7 +102,7 @@ export function SettingsRow({
     >
       {icon ? (
         <View style={[styles.iconContainer, color ? { backgroundColor: color + '20' } : null]}>
-          <Ionicons name={icon} size={20} color={color || Colors.primary} />
+          <Ionicons name={icon} size={20} color={color || colors.primary} />
         </View>
       ) : null}
       <View style={styles.rowTextWrap}>
@@ -105,7 +112,7 @@ export function SettingsRow({
       {value ? <Text style={styles.rowValue}>{value}</Text> : null}
       {rightElement}
       {showChevron && onPress ? (
-        <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+        <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
       ) : null}
     </Pressable>
   );
@@ -127,11 +134,13 @@ export function SettingsToggle({
   value,
   onValueChange,
 }: ToggleProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.row}>
       {icon ? (
         <View style={styles.iconContainer}>
-          <Ionicons name={icon} size={20} color={Colors.primary} />
+          <Ionicons name={icon} size={20} color={colors.primary} />
         </View>
       ) : null}
       <View style={styles.rowTextWrap}>
@@ -141,117 +150,118 @@ export function SettingsToggle({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: Colors.surfaceAlt, true: Colors.primaryLight }}
-        thumbColor={value ? Colors.primary : '#FFFFFF'}
-        ios_backgroundColor={Colors.surfaceAlt}
+        trackColor={{ false: colors.surfaceAlt, true: colors.primaryLight }}
+        thumbColor={value ? colors.primary : '#FFFFFF'}
+        ios_backgroundColor={colors.surfaceAlt}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-    paddingTop: Spacing.sm,
-    backgroundColor: Colors.primary,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTextWrap: {
-    flex: 1,
-    marginLeft: Spacing.xs,
-  },
-  headerTitle: {
-    fontFamily: Typography.fontFamily.bold,
-    fontSize: Typography.size.xl,
-    color: Colors.textInverse,
-  },
-  headerSubtitle: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.sm,
-    color: Colors.textInverse,
-    opacity: 0.85,
-    marginTop: 2,
-  },
-  body: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-  },
-  bodyContent: {
-    paddingVertical: Spacing.lg,
-    paddingBottom: Spacing.xxxl,
-  },
-  group: {
-    marginBottom: Spacing.xl,
-  },
-  groupTitle: {
-    fontFamily: Typography.fontFamily.semibold,
-    fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
-    marginLeft: Spacing.xl,
-    marginBottom: Spacing.sm,
-    textTransform: 'uppercase',
-  },
-  groupFooter: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.xs,
-    color: Colors.textSecondary,
-    marginHorizontal: Spacing.xl,
-    marginTop: Spacing.sm,
-  },
-  card: {
-    backgroundColor: Colors.background,
-    marginHorizontal: Spacing.lg,
-    borderRadius: Radius.lg,
-    overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    minHeight: 56,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.divider,
-  },
-  iconContainer: {
-    width: 34,
-    height: 34,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.primaryFaded,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  rowTextWrap: {
-    flex: 1,
-  },
-  rowLabel: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.md,
-    color: Colors.textPrimary,
-  },
-  rowDescription: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.xs,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  rowValue: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.base,
-    color: Colors.textSecondary,
-    marginRight: Spacing.sm,
-  },
-});
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.primary,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.md,
+      paddingBottom: Spacing.md,
+      paddingTop: Spacing.sm,
+      backgroundColor: colors.primary,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerTextWrap: {
+      flex: 1,
+      marginLeft: Spacing.xs,
+    },
+    headerTitle: {
+      fontFamily: Typography.fontFamily.bold,
+      fontSize: Typography.size.xl,
+      color: colors.textInverse,
+    },
+    headerSubtitle: {
+      fontFamily: Typography.fontFamily.regular,
+      fontSize: Typography.size.sm,
+      color: colors.textInverse,
+      opacity: 0.85,
+      marginTop: 2,
+    },
+    body: {
+      flex: 1,
+      backgroundColor: colors.surface,
+    },
+    bodyContent: {
+      paddingVertical: Spacing.lg,
+      paddingBottom: Spacing.xxxl,
+    },
+    group: {
+      marginBottom: Spacing.xl,
+    },
+    groupTitle: {
+      fontFamily: Typography.fontFamily.semibold,
+      fontSize: Typography.size.sm,
+      color: colors.textSecondary,
+      marginLeft: Spacing.xl,
+      marginBottom: Spacing.sm,
+      textTransform: 'uppercase',
+    },
+    groupFooter: {
+      fontFamily: Typography.fontFamily.regular,
+      fontSize: Typography.size.xs,
+      color: colors.textSecondary,
+      marginHorizontal: Spacing.xl,
+      marginTop: Spacing.sm,
+    },
+    card: {
+      backgroundColor: colors.background,
+      marginHorizontal: Spacing.lg,
+      borderRadius: Radius.lg,
+      overflow: 'hidden',
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.md,
+      minHeight: 56,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.divider,
+    },
+    iconContainer: {
+      width: 34,
+      height: 34,
+      borderRadius: Radius.sm,
+      backgroundColor: colors.primaryFaded,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: Spacing.md,
+    },
+    rowTextWrap: {
+      flex: 1,
+    },
+    rowLabel: {
+      fontFamily: Typography.fontFamily.regular,
+      fontSize: Typography.size.md,
+      color: colors.textPrimary,
+    },
+    rowDescription: {
+      fontFamily: Typography.fontFamily.regular,
+      fontSize: Typography.size.xs,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    rowValue: {
+      fontFamily: Typography.fontFamily.regular,
+      fontSize: Typography.size.base,
+      color: colors.textSecondary,
+      marginRight: Spacing.sm,
+    },
+  });

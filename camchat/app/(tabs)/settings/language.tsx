@@ -4,13 +4,14 @@
  * immediately, persisted locally (auth store) and saved to their profile.
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing } from '../../../constants';
+import { Typography, Spacing, ColorPalette } from '../../../constants';
 import { t } from '../../../lib/i18n';
 import { useAuthStore } from '../../../store/authStore';
 import { useAuth } from '../../../hooks/useAuth';
+import { useColors } from '../../../hooks/useColors';
 import { SettingsScaffold, SettingsGroup } from '../../../components/settings/SettingsKit';
 import type { AppLanguage } from '../../../types';
 
@@ -22,6 +23,8 @@ const LANGUAGES: { code: AppLanguage; labelKey: string; native: string }[] = [
 export default function LanguageScreen() {
   const { language, setLanguage } = useAuthStore();
   const { updateProfile, user } = useAuth();
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   // Local mirror so the checkmark updates instantly on tap
   const [selected, setSelected] = useState<AppLanguage>(language);
 
@@ -50,7 +53,7 @@ export default function LanguageScreen() {
                 <Text style={styles.native}>{lang.native}</Text>
               </View>
               {isSelected ? (
-                <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
+                <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
               ) : (
                 <View style={styles.radioOuter} />
               )}
@@ -62,7 +65,8 @@ export default function LanguageScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -70,19 +74,19 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     minHeight: 60,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   lastRow: { borderBottomWidth: 0 },
   textWrap: { flex: 1 },
   label: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   native: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   radioOuter: {
@@ -90,6 +94,6 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: Colors.divider,
+    borderColor: colors.divider,
   },
 });
