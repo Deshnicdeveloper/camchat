@@ -56,7 +56,7 @@ SLIDES.push(`
 /* ============================== 2 · AGENDA ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Contents','What this presentation covers',
+  ${head('Slide 02 · Overview','What this presentation covers',
     'A complete walk-through of the CamChat <strong>system</strong> as defined by its SRS — from architecture and actors to functional, interface and non-functional requirements.')}
   <div class="grid g3" style="margin-top:18px;">
     ${[
@@ -78,7 +78,7 @@ SLIDES.push(`
 /* ============================== 3 · INTRODUCTION ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 1 · Introduction','Purpose &amp; product scope')}
+  ${head('Slide 03 · Introduction','Purpose &amp; product scope')}
   <div class="grid g2" style="margin-top:6px;grid-template-columns:1.05fr .95fr;align-items:start;">
     <div class="col" style="gap:16px;">
       <ul class="flist" data-anim="up">
@@ -108,7 +108,7 @@ SLIDES.push(`
 /* ============================== 4 · ARCHITECTURE (SYSTEM) ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 2 · Product Perspective','System architecture — a Backend-as-a-Service design',
+  ${head('Slide 04 · System Architecture','System architecture — a Backend-as-a-Service design',
     'A single React Native client communicates directly with managed cloud services — each chosen for what it does best.')}
   <div style="flex:1;display:flex;align-items:center;justify-content:center;margin-top:4px;">
   <svg viewBox="0 0 1080 430" style="width:100%;max-height:430px;" data-anim="fade">
@@ -152,7 +152,7 @@ SLIDES.push(`
 /* ============================== 5 · USER CLASSES ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 2 · User Classes','Who interacts with the system')}
+  ${head('Slide 05 · User Classes','Who interacts with the system')}
   <div class="grid g4" style="margin-top:14px;">
     ${[
       ['user','Unregistered User','Has installed the app but not registered. Sees onboarding and enters a phone number.','Onboarding only','blue'],
@@ -188,7 +188,7 @@ function uc(x,y,label){
 }
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 6 · Use Case Diagram','How actors interact with CamChat')}
+  ${head('Slide 06 · Use Case Diagram','How actors interact with CamChat')}
   <div style="flex:1;display:flex;align-items:center;justify-content:center;">
   <svg viewBox="0 0 1120 470" style="width:100%;max-height:440px;" data-anim="fade">
     <!-- system boundary -->
@@ -231,7 +231,7 @@ SLIDES.push(`
 /* ============================== 7 · FUNCTIONAL REQUIREMENTS OVERVIEW ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 3 · Functional Requirements','Ten modules, seventy-plus requirements')}
+  ${head('Slide 07 · Functional Requirements','Ten modules, seventy-plus requirements')}
   <div class="grid g4" style="margin-top:8px;gap:16px;">
     ${[
       ['key','Authentication','FR-1 · 21','blue'],
@@ -257,7 +257,7 @@ SLIDES.push(`
 /* ============================== 8 · AUTHENTICATION ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 3.1 · Authentication','Phone &amp; OTP — onboarding to first message')}
+  ${head('Slide 08 · Authentication','Phone &amp; OTP — onboarding to first message')}
   <div class="row" style="margin-top:6px;gap:36px;align-items:center;flex:1;">
     <div style="display:flex;gap:22px;flex:none;">
       <div class="float" style="width:212px;">${phone('IMG_0175.jpg','Onboarding')}</div>
@@ -281,7 +281,7 @@ SLIDES.push(`
 /* ============================== 9 · MESSAGING ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 3.3 &amp; 3.4 · Messaging','Rich, real-time conversations')}
+  ${head('Slide 09 · Messaging','Rich, real-time conversations')}
   <div class="row" style="margin-top:6px;gap:34px;flex:1;align-items:center;">
     <div class="col spread" style="gap:18px;">
       <div class="grid g2" style="gap:16px;">
@@ -307,7 +307,7 @@ SLIDES.push(`
 /* ============================== 10 · GROUPS & STATUS ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 3.5 &amp; 3.6 · Groups &amp; Status','Communities and 24-hour stories')}
+  ${head('Slide 10 · Groups &amp; Status','Communities and 24-hour stories')}
   <div class="row" style="margin-top:6px;gap:34px;flex:1;align-items:center;">
     <div style="display:flex;gap:20px;flex:none;">
       <div class="float" style="width:208px;">${phone('IMG_0180.jpg','Status list')}</div>
@@ -337,7 +337,7 @@ SLIDES.push(`
 /* ============================== 11 · CALLS ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 3.7 · Voice &amp; Video Calling','Real-time communication via Agora RTC')}
+  ${head('Slide 11 · Voice &amp; Video Calling','Real-time communication via Agora RTC')}
   <div class="row" style="margin-top:6px;gap:34px;flex:1;align-items:center;">
     <div class="col spread" style="gap:18px;">
       <div class="grid g2" style="gap:16px;">
@@ -362,7 +362,7 @@ SLIDES.push(`
 /* ============================== 12 · SETTINGS / I18N / DARK ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 3.9 · Settings, Localization &amp; Dark Mode','Personalization across the system')}
+  ${head('Slide 12 · Settings &amp; Localization','Personalization across the system')}
   <div class="row" style="margin-top:6px;gap:34px;flex:1;align-items:center;">
     <div style="display:flex;gap:20px;flex:none;">
       <div class="float" style="width:208px;">${phone('IMG_0183.jpg','Settings · dark')}</div>
@@ -398,7 +398,7 @@ function umlBox(x,y,w,name,attrs,color='#2E6FC7'){
 }
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 6 · Class Diagram','Domain model derived from the data design')}
+  ${head('Slide 13 · Class Diagram','Domain model derived from the data design')}
   <div style="flex:1;display:flex;align-items:center;justify-content:center;">
   <svg viewBox="0 0 1120 470" style="width:100%;max-height:445px;" data-anim="fade">
     <!-- relationship lines -->
@@ -440,7 +440,7 @@ SLIDES.push(`
 /* ============================== 14 · FIRESTORE DATA MODEL ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 6.3 · Firestore Data Model','Six collections, secured by rules')}
+  ${head('Slide 14 · Data Model','Six collections, secured by rules')}
   <div class="card" data-anim="up" style="margin-top:6px;padding:8px 10px;">
   <table class="tbl">
     <thead><tr><th>Collection</th><th>Document ID</th><th>Key fields</th><th>Notes</th></tr></thead>
@@ -460,7 +460,7 @@ SLIDES.push(`
 /* ============================== 15 · EXTERNAL INTERFACES ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 4 · External Interface Requirements','Hardware, software &amp; communication')}
+  ${head('Slide 15 · Interface Requirements','Hardware, software &amp; communication')}
   <div class="grid g3" style="margin-top:8px;align-items:start;">
     <div class="card" data-anim="up">
       <div class="ct" style="display:flex;align-items:center;gap:10px">${ic('camera')} Hardware</div>
@@ -496,7 +496,7 @@ SLIDES.push(`
 /* ============================== 16 · NON-FUNCTIONAL (metrics) ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 5 · Non-Functional Requirements','Performance, security &amp; experience targets')}
+  ${head('Slide 16 · Non-Functional Requirements','Performance, security &amp; experience targets')}
   <div class="grid g4" style="margin-top:6px;">
     ${[
       ['1','s','Text message delivery','#2E6FC7'],
@@ -537,7 +537,7 @@ SLIDES.push(`
 /* ============================== 17 · TECH STACK ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Implementation','A production-grade, type-safe foundation')}
+  ${head('Slide 17 · Implementation','A production-grade, type-safe foundation')}
   <div class="grid g3" style="margin-top:10px;align-items:start;">
     ${[
       ['Frontend','#2E6FC7','code',['React Native (Expo)','TypeScript — strict mode','expo-router navigation','Zustand state','expo-image rendering']],
@@ -558,7 +558,7 @@ SLIDES.push(`
 /* ============================== 18 · BRAND / PALETTE ============================== */
 SLIDES.push(`
 <section><div class="wrap">
-  ${head('Chapter 5.8 · Design Requirements','One visual language, two themes')}
+  ${head('Slide 18 · Design System','One visual language, two themes')}
   <div class="grid g2" style="margin-top:6px;grid-template-columns:1.1fr .9fr;align-items:start;">
     <div>
       <div class="grid g3" data-anim="up" style="gap:14px;">
