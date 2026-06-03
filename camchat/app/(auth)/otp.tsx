@@ -18,10 +18,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { t } from '../../lib/i18n';
 import { useAuth } from '../../hooks/useAuth';
 import { sendOTP } from '../../lib/auth';
@@ -31,6 +32,8 @@ const OTP_LENGTH = 6;
 const RESEND_TIMEOUT = 60;
 
 export default function OTPScreen() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { phone } = useLocalSearchParams<{ phone: string }>();
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [resendTimer, setResendTimer] = useState(RESEND_TIMEOUT);
@@ -175,7 +178,7 @@ export default function OTPScreen() {
             {/* Header */}
             <View style={styles.header}>
               <Pressable onPress={() => router.back()} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+                <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
               </Pressable>
             </View>
 
@@ -215,7 +218,7 @@ export default function OTPScreen() {
                     {t('auth.resendIn')} {resendTimer}s
                   </Text>
                 ) : isResending ? (
-                  <ActivityIndicator color={Colors.textInverse} size="small" />
+                  <ActivityIndicator color={colors.textInverse} size="small" />
                 ) : (
                   <Pressable onPress={handleResend}>
                     <Text style={styles.resendLink}>{t('auth.resendCode')}</Text>
@@ -232,7 +235,7 @@ export default function OTPScreen() {
                 disabled={!isComplete || isVerifying}
               >
                 {isVerifying ? (
-                  <ActivityIndicator color={Colors.primary} />
+                  <ActivityIndicator color={colors.primary} />
                 ) : (
                   <Text style={[styles.buttonText, !isComplete && styles.buttonTextDisabled]}>
                     {t('auth.continue')}
@@ -247,10 +250,11 @@ export default function OTPScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   keyboardAvoid: {
     flex: 1,
@@ -277,14 +281,14 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: Typography.fontFamily.bold,
     fontSize: Typography.size.xl,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
   subtitle: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.base,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     textAlign: 'center',
     opacity: 0.9,
     marginBottom: Spacing.xxl,
@@ -297,17 +301,17 @@ const styles = StyleSheet.create({
   otpInput: {
     width: 48,
     height: 56,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderRadius: Radius.md,
     textAlign: 'center',
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.xl,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   otpInputFilled: {
-    borderColor: Colors.primary,
+    borderColor: colors.primary,
   },
   resendContainer: {
     marginTop: Spacing.xl,
@@ -315,13 +319,13 @@ const styles = StyleSheet.create({
   resendTimer: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     opacity: 0.7,
   },
   resendLink: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.sm,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     textDecorationLine: 'underline',
   },
   footer: {
@@ -329,7 +333,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxl,
   },
   button: {
-    backgroundColor: Colors.textInverse,
+    backgroundColor: colors.textInverse,
     paddingVertical: Spacing.lg,
     borderRadius: Radius.full,
     alignItems: 'center',
@@ -340,7 +344,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.primary,
+    color: colors.primary,
   },
   buttonTextDisabled: {
     opacity: 0.7,

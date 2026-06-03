@@ -3,7 +3,7 @@
  * Swipeable onboarding slides with 3 screens
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { t } from '../../lib/i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -54,12 +55,14 @@ interface SlideItemProps {
 }
 
 function SlideItem({ item }: SlideItemProps) {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.slide}>
       {/* Illustration */}
       <View style={styles.illustrationContainer}>
         <View style={styles.illustrationPlaceholder}>
-          <Ionicons name={item.icon} size={120} color={Colors.textInverse} />
+          <Ionicons name={item.icon} size={120} color={colors.textInverse} />
         </View>
       </View>
 
@@ -73,6 +76,8 @@ function SlideItem({ item }: SlideItemProps) {
 }
 
 export default function WelcomeScreen() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList<SlideData>>(null);
 
@@ -160,10 +165,11 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   skipButton: {
     position: 'absolute',
@@ -176,7 +182,7 @@ const styles = StyleSheet.create({
   skipText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.md,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     opacity: 0.8,
   },
   slide: {
@@ -192,7 +198,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -204,14 +210,14 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: Typography.fontFamily.bold,
     fontSize: Typography.size.xxl,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     textAlign: 'center',
     marginBottom: Spacing.md,
   },
   subtitle: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     textAlign: 'center',
     opacity: 0.9,
     lineHeight: Typography.size.md * Typography.lineHeight.relaxed,
@@ -226,7 +232,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.textInverse,
+    backgroundColor: colors.textInverse,
     opacity: 0.4,
     marginHorizontal: Spacing.xs,
   },
@@ -237,7 +243,7 @@ const styles = StyleSheet.create({
   button: {
     marginHorizontal: Spacing.xl,
     marginBottom: Spacing.xxl,
-    backgroundColor: Colors.textInverse,
+    backgroundColor: colors.textInverse,
     paddingVertical: Spacing.lg,
     borderRadius: Radius.full,
     alignItems: 'center',
@@ -245,6 +251,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.primary,
+    color: colors.primary,
   },
 });

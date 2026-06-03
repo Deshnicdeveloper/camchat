@@ -3,7 +3,7 @@
  * Contact picker to start a new conversation with synced contacts
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius } from '../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../constants';
+import { useColors } from '../hooks/useColors';
 import { t } from '../lib/i18n';
 import { ContactRow } from '../components/chat';
 import { SkeletonChatRow } from '../components/ui/Skeleton';
@@ -26,6 +27,8 @@ import { useChat } from '../hooks/useChat';
 import type { User } from '../types';
 
 export default function NewChatScreen() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isStartingChat, setIsStartingChat] = useState(false);
 
@@ -119,13 +122,13 @@ export default function NewChatScreen() {
 
   const renderPermissionPrompt = () => (
     <View style={styles.permissionState}>
-      <Ionicons name="people-outline" size={64} color={Colors.primary} />
+      <Ionicons name="people-outline" size={64} color={colors.primary} />
       <Text style={styles.permissionTitle}>{t('contacts.syncContacts')}</Text>
       <Text style={styles.permissionSubtext}>
         {t('contacts.syncDescription')}
       </Text>
       <Pressable style={styles.syncButton} onPress={handleRequestPermission}>
-        <Ionicons name="sync" size={20} color={Colors.textInverse} />
+        <Ionicons name="sync" size={20} color={colors.textInverse} />
         <Text style={styles.syncButtonText}>{t('contacts.allowAccess')}</Text>
       </Pressable>
     </View>
@@ -133,7 +136,7 @@ export default function NewChatScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="person-outline" size={48} color={Colors.textSecondary} />
+      <Ionicons name="person-outline" size={48} color={colors.textSecondary} />
       <Text style={styles.emptyText}>
         {searchQuery ? t('contacts.noResults') : t('contacts.noContacts')}
       </Text>
@@ -163,14 +166,14 @@ export default function NewChatScreen() {
       {/* Loading overlay when starting a chat */}
       {isStartingChat && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.textInverse} />
+          <ActivityIndicator size="large" color={colors.textInverse} />
         </View>
       )}
 
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
         </Pressable>
         <Text style={styles.headerTitle}>{t('chats.newChat')}</Text>
         <View style={styles.backButton} />
@@ -179,17 +182,17 @@ export default function NewChatScreen() {
       {/* Search */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInput}>
-          <Ionicons name="search" size={20} color={Colors.textSecondary} />
+          <Ionicons name="search" size={20} color={colors.textSecondary} />
           <TextInput
             style={styles.searchTextInput}
             placeholder={t('common.search')}
-            placeholderTextColor={Colors.textSecondary}
+            placeholderTextColor={colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <Pressable onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+              <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
             </Pressable>
           )}
         </View>
@@ -200,7 +203,7 @@ export default function NewChatScreen() {
         {/* New Group Option */}
         <Pressable style={styles.newGroupRow} onPress={handleNewGroup}>
           <View style={styles.newGroupIcon}>
-            <Ionicons name="people" size={24} color={Colors.textInverse} />
+            <Ionicons name="people" size={24} color={colors.textInverse} />
           </View>
           <Text style={styles.newGroupText}>{t('groups.newGroup')}</Text>
         </Pressable>
@@ -211,7 +214,7 @@ export default function NewChatScreen() {
           renderLoadingSkeleton()
         ) : error ? (
           <View style={styles.errorState}>
-            <Ionicons name="warning-outline" size={48} color={Colors.error} />
+            <Ionicons name="warning-outline" size={48} color={colors.error} />
             <Text style={styles.errorText}>{error}</Text>
             <Pressable style={styles.retryButton} onPress={sync}>
               <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
@@ -239,14 +242,15 @@ export default function NewChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.overlay,
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 100,
@@ -257,7 +261,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   backButton: {
     width: 40,
@@ -268,17 +272,17 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.lg,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   searchContainer: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   searchInput: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -287,27 +291,27 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginLeft: Spacing.sm,
     paddingVertical: Spacing.xs,
   },
   content: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   newGroupRow: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.lg,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   newGroupIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.md,
@@ -315,17 +319,17 @@ const styles = StyleSheet.create({
   newGroupText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   sectionHeader: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
   sectionHeaderText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'uppercase',
   },
   listContent: {
@@ -333,7 +337,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    backgroundColor: Colors.divider,
+    backgroundColor: colors.divider,
     marginLeft: Spacing.lg + 48 + Spacing.md,
   },
   emptyState: {
@@ -346,13 +350,13 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginTop: Spacing.lg,
   },
   emptySubtext: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.sm,
   },
@@ -360,13 +364,13 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.xl,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 20,
   },
   refreshButtonText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.sm,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   permissionState: {
     flex: 1,
@@ -377,14 +381,14 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.lg,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,
   },
   permissionSubtext: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: Spacing.xl,
     lineHeight: Typography.size.sm * 1.5,
@@ -392,7 +396,7 @@ const styles = StyleSheet.create({
   syncButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
     borderRadius: 24,
@@ -400,7 +404,7 @@ const styles = StyleSheet.create({
   syncButtonText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     marginLeft: Spacing.sm,
   },
   skeletonContainer: {
@@ -416,13 +420,13 @@ const styles = StyleSheet.create({
   errorText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.base,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.md,
     marginBottom: Spacing.lg,
   },
   retryButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.xl,
     borderRadius: 20,
@@ -430,6 +434,6 @@ const styles = StyleSheet.create({
   retryButtonText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.sm,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
 });

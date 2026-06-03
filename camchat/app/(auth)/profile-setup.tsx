@@ -20,10 +20,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { Colors, Typography, Spacing, Radius } from '../../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../../constants';
+import { useColors } from '../../hooks/useColors';
 import { t } from '../../lib/i18n';
 import { useAuth } from '../../hooks/useAuth';
 import { uploadAvatarFromUri } from '../../lib/storage';
@@ -33,6 +34,8 @@ import { getCurrentFirebaseUser } from '../../lib/auth';
 const DEFAULT_ABOUT = "Hey, I'm on CamChat 🦁";
 
 export default function ProfileSetupScreen() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [displayName, setDisplayName] = useState('');
   const [about, setAbout] = useState(DEFAULT_ABOUT);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
@@ -135,7 +138,7 @@ export default function ProfileSetupScreen() {
             {/* Header */}
             <View style={styles.header}>
               <Pressable onPress={() => router.back()} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+                <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
               </Pressable>
             </View>
 
@@ -154,11 +157,11 @@ export default function ProfileSetupScreen() {
                   {avatarUri ? (
                     <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
                   ) : (
-                    <Ionicons name="person" size={48} color={Colors.textSecondary} />
+                    <Ionicons name="person" size={48} color={colors.textSecondary} />
                   )}
                 </View>
                 <View style={styles.cameraIcon}>
-                  <Ionicons name="camera" size={18} color={Colors.textInverse} />
+                  <Ionicons name="camera" size={18} color={colors.textInverse} />
                 </View>
               </Pressable>
 
@@ -170,7 +173,7 @@ export default function ProfileSetupScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="Enter your name"
-                    placeholderTextColor={Colors.textSecondary}
+                    placeholderTextColor={colors.textSecondary}
                     value={displayName}
                     onChangeText={setDisplayName}
                     maxLength={25}
@@ -186,7 +189,7 @@ export default function ProfileSetupScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="About"
-                    placeholderTextColor={Colors.textSecondary}
+                    placeholderTextColor={colors.textSecondary}
                     value={about}
                     onChangeText={setAbout}
                     maxLength={139}
@@ -203,7 +206,7 @@ export default function ProfileSetupScreen() {
                 disabled={!isValid || isSaving}
               >
                 {isSaving ? (
-                  <ActivityIndicator color={Colors.primary} />
+                  <ActivityIndicator color={colors.primary} />
                 ) : (
                   <Text style={[styles.buttonText, !isValid && styles.buttonTextDisabled]}>
                     {t('common.done')}
@@ -218,10 +221,11 @@ export default function ProfileSetupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   keyboardAvoid: {
     flex: 1,
@@ -251,14 +255,14 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: Typography.fontFamily.bold,
     fontSize: Typography.size.xl,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
   subtitle: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.base,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     textAlign: 'center',
     opacity: 0.9,
     marginBottom: Spacing.xl,
@@ -271,11 +275,11 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 4,
-    borderColor: Colors.textInverse,
+    borderColor: colors.textInverse,
     overflow: 'hidden',
   },
   avatarImage: {
@@ -290,15 +294,15 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: Colors.primary,
+    borderColor: colors.primary,
   },
   card: {
     width: '100%',
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderRadius: Radius.lg,
     overflow: 'hidden',
   },
@@ -308,18 +312,18 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.sm,
-    color: Colors.primary,
+    color: colors.primary,
     marginBottom: Spacing.xs,
   },
   input: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     paddingVertical: Spacing.xs,
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.divider,
+    backgroundColor: colors.divider,
     marginHorizontal: Spacing.lg,
   },
   footer: {
@@ -327,7 +331,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxl,
   },
   button: {
-    backgroundColor: Colors.textInverse,
+    backgroundColor: colors.textInverse,
     paddingVertical: Spacing.lg,
     borderRadius: Radius.full,
     alignItems: 'center',
@@ -338,7 +342,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.primary,
+    color: colors.primary,
   },
   buttonTextDisabled: {
     opacity: 0.7,

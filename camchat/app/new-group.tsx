@@ -20,7 +20,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { Colors, Typography, Spacing, Radius } from '../constants';
+import { Typography, Spacing, Radius, ColorPalette } from '../constants';
+import { useColors } from '../hooks/useColors';
 import { t } from '../lib/i18n';
 import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
@@ -32,6 +33,8 @@ import type { Contact } from '../types';
 type Step = 'participants' | 'info';
 
 export default function NewGroupScreen() {
+  const { colors } = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   // State
   const [step, setStep] = useState<Step>('participants');
   const [selectedParticipants, setSelectedParticipants] = useState<Contact[]>([]);
@@ -225,7 +228,7 @@ export default function NewGroupScreen() {
         </View>
         <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
           {selected && (
-            <Ionicons name="checkmark" size={16} color={Colors.textInverse} />
+            <Ionicons name="checkmark" size={16} color={colors.textInverse} />
           )}
         </View>
       </Pressable>
@@ -252,7 +255,7 @@ export default function NewGroupScreen() {
         {contact.name.split(' ')[0]}
       </Text>
       <View style={styles.chipRemove}>
-        <Ionicons name="close" size={12} color={Colors.textSecondary} />
+        <Ionicons name="close" size={12} color={colors.textSecondary} />
       </View>
     </Pressable>
   );
@@ -267,7 +270,7 @@ export default function NewGroupScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
         </Pressable>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>
@@ -312,17 +315,17 @@ export default function NewGroupScreen() {
 
           {/* Search Bar */}
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color={Colors.textSecondary} />
+            <Ionicons name="search" size={20} color={colors.textSecondary} />
             <TextInput
               style={styles.searchInput}
               placeholder={t('common.search')}
-              placeholderTextColor={Colors.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             {searchQuery.length > 0 && (
               <Pressable onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
               </Pressable>
             )}
           </View>
@@ -330,12 +333,12 @@ export default function NewGroupScreen() {
           {/* Contacts List */}
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
+              <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.loadingText}>Loading contacts...</Text>
             </View>
           ) : filteredContacts.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="people-outline" size={64} color={Colors.textSecondary} />
+              <Ionicons name="people-outline" size={64} color={colors.textSecondary} />
               <Text style={styles.emptyText}>
                 {searchQuery ? 'No contacts found' : 'No contacts available'}
               </Text>
@@ -360,11 +363,11 @@ export default function NewGroupScreen() {
                 <Image source={{ uri: groupAvatarUri }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatar}>
-                  <Ionicons name="people" size={48} color={Colors.textSecondary} />
+                  <Ionicons name="people" size={48} color={colors.textSecondary} />
                 </View>
               )}
               <View style={styles.cameraIcon}>
-                <Ionicons name="camera" size={18} color={Colors.textInverse} />
+                <Ionicons name="camera" size={18} color={colors.textInverse} />
               </View>
             </Pressable>
           </View>
@@ -376,7 +379,7 @@ export default function NewGroupScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Enter group name"
-                placeholderTextColor={Colors.textSecondary}
+                placeholderTextColor={colors.textSecondary}
                 value={groupName}
                 onChangeText={setGroupName}
                 maxLength={50}
@@ -391,7 +394,7 @@ export default function NewGroupScreen() {
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="Add a group description (optional)"
-                placeholderTextColor={Colors.textSecondary}
+                placeholderTextColor={colors.textSecondary}
                 value={groupDescription}
                 onChangeText={setGroupDescription}
                 maxLength={250}
@@ -445,7 +448,7 @@ export default function NewGroupScreen() {
               disabled={!canProceed || isCreating}
             >
               {isCreating ? (
-                <ActivityIndicator color={Colors.textInverse} />
+                <ActivityIndicator color={colors.textInverse} />
               ) : (
                 <Text style={[styles.buttonText, !canProceed && styles.buttonTextDisabled]}>
                   {t('groups.createGroup')}
@@ -459,10 +462,11 @@ export default function NewGroupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   header: {
     flexDirection: 'row',
@@ -470,7 +474,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   backButton: {
     width: 40,
@@ -485,12 +489,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.lg,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   headerSubtitle: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textInverse,
+    color: colors.textInverse,
     opacity: 0.8,
     marginTop: 2,
   },
@@ -504,26 +508,26 @@ const styles = StyleSheet.create({
   nextButtonText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   nextButtonTextDisabled: {
     opacity: 0.7,
   },
   content: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   infoContent: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
 
   // Selected participants section
   selectedSection: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: colors.divider,
   },
   selectedScrollContent: {
     paddingHorizontal: Spacing.md,
@@ -540,19 +544,19 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   chipAvatarPlaceholder: {
-    backgroundColor: Colors.primaryFaded,
+    backgroundColor: colors.primaryFaded,
     justifyContent: 'center',
     alignItems: 'center',
   },
   chipInitial: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.lg,
-    color: Colors.primary,
+    color: colors.primary,
   },
   chipName: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.xs,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginTop: Spacing.xs,
     textAlign: 'center',
   },
@@ -563,18 +567,18 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.divider,
+    borderColor: colors.divider,
   },
 
   // Search
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     marginHorizontal: Spacing.md,
     marginVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
@@ -585,7 +589,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginLeft: Spacing.sm,
   },
 
@@ -599,7 +603,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   contactInfo: {
     flexDirection: 'row',
@@ -612,14 +616,14 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   contactAvatarPlaceholder: {
-    backgroundColor: Colors.primaryFaded,
+    backgroundColor: colors.primaryFaded,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarInitial: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.lg,
-    color: Colors.primary,
+    color: colors.primary,
   },
   contactDetails: {
     marginLeft: Spacing.md,
@@ -628,12 +632,12 @@ const styles = StyleSheet.create({
   contactName: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   contactPhone: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   checkbox: {
@@ -641,13 +645,13 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.divider,
+    borderColor: colors.divider,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
 
   // Loading & Empty states
@@ -659,7 +663,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.md,
   },
   emptyContainer: {
@@ -671,7 +675,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.md,
     textAlign: 'center',
   },
@@ -680,7 +684,7 @@ const styles = StyleSheet.create({
   avatarSection: {
     alignItems: 'center',
     paddingVertical: Spacing.xl,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   avatarContainer: {
     position: 'relative',
@@ -689,7 +693,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -700,17 +704,17 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.background,
+    borderColor: colors.background,
   },
   form: {
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: Colors.divider,
+    borderColor: colors.divider,
   },
   inputContainer: {
     padding: Spacing.lg,
@@ -718,13 +722,13 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.sm,
-    color: Colors.primary,
+    color: colors.primary,
     marginBottom: Spacing.xs,
   },
   input: {
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     paddingVertical: Spacing.xs,
   },
   textArea: {
@@ -733,23 +737,23 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.divider,
+    backgroundColor: colors.divider,
     marginHorizontal: Spacing.lg,
   },
 
   // Participants summary
   participantsSummary: {
     padding: Spacing.lg,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     marginTop: Spacing.md,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: Colors.divider,
+    borderColor: colors.divider,
   },
   summaryTitle: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: Spacing.md,
   },
   summaryAvatars: {
@@ -763,27 +767,27 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: Colors.background,
+    borderColor: colors.background,
   },
   summaryAvatarPlaceholder: {
-    backgroundColor: Colors.primaryFaded,
+    backgroundColor: colors.primaryFaded,
     justifyContent: 'center',
     alignItems: 'center',
   },
   summaryInitial: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.sm,
-    color: Colors.primary,
+    color: colors.primary,
   },
   summaryAvatarMore: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   summaryMoreText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.xs,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
 
   // Create button
@@ -792,7 +796,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xl,
   },
   button: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     paddingVertical: Spacing.lg,
     borderRadius: Radius.full,
     alignItems: 'center',
@@ -805,7 +809,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontFamily: Typography.fontFamily.semibold,
     fontSize: Typography.size.md,
-    color: Colors.textInverse,
+    color: colors.textInverse,
   },
   buttonTextDisabled: {
     opacity: 0.7,
