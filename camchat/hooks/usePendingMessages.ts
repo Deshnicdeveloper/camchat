@@ -10,7 +10,8 @@ import type { Message, MessageType, LocationData } from '../types';
 export interface PendingMessage {
   id: string; // Temporary ID
   type: MessageType;
-  localUri?: string; // Local file URI for preview
+  localUri?: string; // Local file URI for preview (thumbnail for videos)
+  uploadUri?: string; // Original file URI for upload (differs from localUri for videos)
   text?: string;
   fileName?: string;
   fileSize?: number;
