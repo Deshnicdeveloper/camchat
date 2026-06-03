@@ -20,6 +20,13 @@
 -- where schemaname = 'storage' and tablename = 'objects'
 --   and (with_check ilike '%statuses%' or qual ilike '%statuses%');
 
+-- IMPORTANT: leftover Supabase "quickstart template" policies are RESTRICTIVE
+-- (AND-ed with everything else). The JPG template below requires extension=jpg
+-- AND folder='public', so it blocks .webp / .mp4 status uploads in userId
+-- folders even when a permissive bucket-wide policy exists. Drop them.
+drop policy if exists "Give anon users access to JPG images in folder lt45y8_0" on storage.objects;
+drop policy if exists "Give anon users access to JPG images in folder lt45y8_1" on storage.objects;
+
 drop policy if exists "Allow public upload statuses"  on storage.objects;
 drop policy if exists "Allow public read statuses"    on storage.objects;
 drop policy if exists "statuses public read"          on storage.objects;
