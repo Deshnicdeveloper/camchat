@@ -15,6 +15,7 @@ import {
   subscribeToAuthState,
   formatPhoneNumber,
 } from '../lib/auth';
+import { registerPushToken } from '../lib/notifications';
 import type { User, AppLanguage } from '../types';
 
 interface UseAuthReturn {
@@ -72,6 +73,10 @@ export function useAuth(): UseAuthReturn {
           setUser(userProfile);
           // Update online status
           await updateOnlineStatus(firebaseUser.uid, true);
+          // Register push token for notifications (non-blocking)
+          registerPushToken(firebaseUser.uid).catch((err) =>
+            console.warn('Failed to register push token:', err)
+          );
         } else {
           // User exists in Firebase but not in Firestore (needs profile setup)
           setLoading(false);
@@ -109,6 +114,10 @@ export function useAuth(): UseAuthReturn {
           if (userProfile) {
             setUser(userProfile);
             await updateOnlineStatus(result.user.uid, true);
+            // Register push token for notifications (non-blocking)
+            registerPushToken(result.user.uid).catch((err) =>
+              console.warn('Failed to register push token:', err)
+            );
           }
         }
       }
@@ -151,6 +160,10 @@ export function useAuth(): UseAuthReturn {
       if (result.success && result.user) {
         setUser(result.user);
         await updateOnlineStatus(firebaseUid, true);
+        // Register push token for notifications (non-blocking)
+        registerPushToken(firebaseUid).catch((err) =>
+          console.warn('Failed to register push token:', err)
+        );
       }
 
       setLoading(false);

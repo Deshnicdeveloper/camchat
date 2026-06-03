@@ -9,3 +9,12 @@ export type { StorageBucket } from './supabase';
 export * from './firestore';
 export * from './storage';
 export { default as i18n, t, setLocale, getLocale } from './i18n';
+export {
+  registerPushToken,
+  setupNotificationListeners,
+  handleNotificationTap,
+  clearAllNotifications,
+  setBadgeCount,
+  getLastNotificationResponse,
+} from './notifications';
+export type { NotificationData } from './notifications';
