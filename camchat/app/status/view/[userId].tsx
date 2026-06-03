@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Alert,
   PanResponder,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -25,8 +26,10 @@ import { useStatus } from '../../../hooks/useStatus';
 import { useAuthStore } from '../../../store/authStore';
 import { StatusProgressBar } from '../../../components/status';
 import { formatStatusTime } from '../../../utils/formatTime';
-import type { Status, UserProfile } from '../../../types';
+import type { Status, UserProfile, ReplyReference } from '../../../types';
 import { getUsersByIds } from '../../../lib/contacts';
+import { getOrCreateDirectChat } from '../../../lib/chat';
+import { sendMessage } from '../../../lib/messages';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const STATUS_DURATION = 5000; // 5 seconds per status
@@ -43,6 +46,7 @@ export default function StatusViewScreen() {
   const [isPaused, setIsPaused] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [replyText, setReplyText] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
 
   const isOwnStatus = userId === user?.uid;
 
@@ -140,17 +144,64 @@ export default function StatusViewScreen() {
     [handlePrevious, handleNext]
   );
 
-  // Handle reply
-  const handleReply = useCallback(() => {
-    if (!replyText.trim() || !statusUser) return;
+  // Handle reply — sends the reply as a direct message to the status owner,
+  // quoting the status being replied to, then opens the conversation.
+  const handleReply = useCallback(async () => {
+    const message = replyText.trim();
+    const targetStatus = statuses[currentIndex];
+    if (!message || !statusUser || !user?.uid || !targetStatus || isSendingReply) {
+      return;
+    }
 
-    // TODO: Implement sending reply as DM
-    Alert.alert(
-      'Reply Sent',
-      `Your reply to ${statusUser.displayName} has been sent.`
-    );
-    setReplyText('');
-  }, [replyText, statusUser]);
+    setIsSendingReply(true);
+    Keyboard.dismiss();
+
+    try {
+      // Get or create the 1:1 chat with the status owner
+      const chatResult = await getOrCreateDirectChat(user.uid, statusUser.uid);
+      if (!chatResult.success || !chatResult.chatId) {
+        throw new Error(chatResult.error || 'Failed to open chat');
+      }
+
+      // Build a quoted reference to the status being replied to
+      const statusPreview =
+        targetStatus.type === 'text'
+          ? targetStatus.text || t('status.title')
+          : targetStatus.caption || t('status.media');
+
+      const replyTo: ReplyReference = {
+        messageId: `status_${targetStatus.id}`,
+        senderId: statusUser.uid,
+        text: statusPreview,
+        type: targetStatus.type === 'text' ? 'text' : 'image',
+      };
+
+      const sendResult = await sendMessage({
+        chatId: chatResult.chatId,
+        senderId: user.uid,
+        type: 'text',
+        text: message,
+        replyTo,
+        participants: [user.uid, statusUser.uid],
+      });
+
+      if (!sendResult.success) {
+        throw new Error(sendResult.error || 'Failed to send reply');
+      }
+
+      setReplyText('');
+      // Close the viewer and open the conversation with the sent reply
+      router.replace(`/(tabs)/chats/${chatResult.chatId}`);
+    } catch (error) {
+      console.error('Error sending status reply:', error);
+      Alert.alert(
+        t('common.error'),
+        error instanceof Error ? error.message : t('attachments.sendFailed')
+      );
+    } finally {
+      setIsSendingReply(false);
+    }
+  }, [replyText, statusUser, user?.uid, statuses, currentIndex, isSendingReply, router]);
 
   // Pan responder for swipe down to close
   const panResponder = useRef(
@@ -305,8 +356,16 @@ export default function StatusViewScreen() {
               onBlur={() => setIsPaused(false)}
             />
             {replyText.trim().length > 0 && (
-              <Pressable style={styles.sendButton} onPress={handleReply}>
-                <Ionicons name="send" size={20} color={Colors.primary} />
+              <Pressable
+                style={styles.sendButton}
+                onPress={handleReply}
+                disabled={isSendingReply}
+              >
+                {isSendingReply ? (
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                ) : (
+                  <Ionicons name="send" size={20} color={Colors.primary} />
+                )}
               </Pressable>
             )}
           </View>
