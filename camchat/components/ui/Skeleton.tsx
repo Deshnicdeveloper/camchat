@@ -92,7 +92,7 @@ export default function Skeleton({
         styles.skeleton,
         getSize(),
         { borderRadius: getBorderRadius(), opacity },
-        typeof width === 'string' && { width },
+        typeof width === 'string' && { width: width as `${number}%` },
         style,
       ]}
     />

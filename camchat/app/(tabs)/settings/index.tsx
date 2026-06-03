@@ -3,7 +3,8 @@
  * User settings and preferences
  */
 
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
@@ -86,7 +87,7 @@ export default function SettingsScreen() {
         <Pressable style={styles.profileSection} onPress={() => setQrModalVisible(true)}>
           <View style={styles.avatar}>
             {userAvatar ? (
-              <Image source={{ uri: userAvatar }} style={styles.avatarImage} />
+              <Image source={{ uri: userAvatar }} style={styles.avatarImage} contentFit="cover" transition={200} />
             ) : (
               <Ionicons name="person" size={40} color={Colors.textSecondary} />
             )}

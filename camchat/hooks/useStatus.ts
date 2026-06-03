@@ -96,7 +96,9 @@ export function useStatus(): UseStatusReturn {
     }
 
     // Get contact user IDs
-    const contactIds = contacts.map(c => c.userId).filter(Boolean);
+    const contactIds = contacts
+      .map(c => c.userId)
+      .filter((id): id is string => Boolean(id));
 
     console.log('📡 Subscribing to contact statuses:', contactIds.length, 'contacts');
 

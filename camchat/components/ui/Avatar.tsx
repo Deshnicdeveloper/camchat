@@ -59,7 +59,9 @@ export default function Avatar({
   const onlineSize = onlineIndicatorSizeMap[size];
   const initials = getInitials(name);
 
-  const containerStyle: ViewStyle = {
+  // No explicit ViewStyle annotation so the inferred literal type stays assignable
+  // to both ViewStyle (View) and ImageStyle (expo-image), which differ on `overflow`.
+  const containerStyle = {
     width: dimensions,
     height: dimensions,
     borderRadius: dimensions / 2,

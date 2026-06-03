@@ -161,10 +161,15 @@ export function subscribeToMessages(
   chatId: string,
   currentUserId: string,
   callback: (messages: Message[]) => void,
-  onError?: (error: Error) => void
+  onError?: (error: Error) => void,
+  pageSize: number = 30
 ): Unsubscribe {
   const messagesRef = collection(db, COLLECTIONS.CHATS, chatId, 'messages');
-  const q = query(messagesRef, orderBy('timestamp', 'asc'));
+  // Only subscribe to the most recent `pageSize` messages to avoid loading the
+  // entire chat history on every mount. Older messages are fetched on scroll
+  // via loadMoreMessages(). We query descending + limit, then reverse so the
+  // callback still receives messages in ascending (chronological) order.
+  const q = query(messagesRef, orderBy('timestamp', 'desc'), limit(pageSize));
 
   return onSnapshot(
     q,
@@ -179,6 +184,7 @@ export function subscribeToMessages(
         }
       });
 
+      messages.reverse();
       callback(messages);
     },
     (error) => {

@@ -8,8 +8,12 @@ import {
   initializeAuth,
   getAuth,
   Auth,
-  getReactNativePersistence,
 } from 'firebase/auth';
+// `getReactNativePersistence` is shipped in the React Native build of firebase/auth
+// (Metro resolves to it at runtime) but is not surfaced in the bundled TypeScript
+// declarations for the default/browser entry used by tsc. Firebase JS SDK v12.
+// @ts-expect-error -- missing from public type defs, present in the RN runtime build.
+import { getReactNativePersistence } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

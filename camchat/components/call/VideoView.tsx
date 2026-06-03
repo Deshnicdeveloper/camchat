@@ -49,9 +49,9 @@ export function VideoView({
     if (!isExpoGo) {
       import('react-native-agora')
         .then((module) => {
-          RtcSurfaceView = module.RtcSurfaceView;
-          VideoSourceType = module.VideoSourceType;
-          RenderModeType = module.RenderModeType;
+          RtcSurfaceView = module.RtcSurfaceView as React.ComponentType<unknown>;
+          VideoSourceType = module.VideoSourceType as unknown as Record<string, number>;
+          RenderModeType = module.RenderModeType as unknown as Record<string, number>;
           setAgoraLoaded(true);
         })
         .catch((error) => {
