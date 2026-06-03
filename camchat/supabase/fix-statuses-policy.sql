@@ -54,7 +54,7 @@ create policy "statuses public delete" on storage.objects
 -- single clean permissive grant for the statuses bucket.
 -- ============================================================================
 
--- Inspect (look for permissive = f):
+-- Inspect (look for permissive = 'RESTRICTIVE'):
 -- select policyname, cmd, permissive, roles, with_check
 -- from pg_policies
 -- where schemaname='storage' and tablename='objects'
@@ -65,7 +65,8 @@ declare r record;
 begin
   for r in
     select policyname from pg_policies
-    where schemaname = 'storage' and tablename = 'objects' and not permissive
+    where schemaname = 'storage' and tablename = 'objects'
+      and permissive = 'RESTRICTIVE'  -- pg_policies.permissive is TEXT, not boolean
   loop
     execute format('drop policy %I on storage.objects', r.policyname);
   end loop;
